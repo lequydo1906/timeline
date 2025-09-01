@@ -1,50 +1,100 @@
-// ⚡ Firebase config (thay bằng của bạn)
+// ==================== Firebase Config ====================
 const firebaseConfig = {
       apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
       authDomain: "timeline-43aac.firebaseapp.com",
       projectId: "timeline-43aac",
+      storageBucket: "timeline-43aac.firebasestorage.app",
+      messagingSenderId: "732658035286",
+      appId: "1:732658035286:web:40091d26eee343579aa9f7",
     };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const eventsCol = db.collection("events");
 
-// timeline setup
+// ==================== Timeline Setup ====================
 const timeline = document.getElementById("timeline");
 const nowLine = document.getElementById("now-line");
 const nowLabel = document.getElementById("now-label");
 
+// mỗi ngày chiếm bao nhiêu pixel
 const pxPerDay = 200;
-const startDate = new Date("2025-08-28");
 
-// render 1 event
+// lấy ngày hiện tại
+const today = new Date();
+
+// mốc bắt đầu = 15 ngày trước
+const startDate = new Date(today);
+startDate.setHours(0, 0, 0, 0); // reset về 0h
+startDate.setDate(today.getDate() - 15);
+
+// mốc kết thúc = 15 ngày sau
+const endDate = new Date(today);
+endDate.setHours(23, 59, 59, 999);
+endDate.setDate(today.getDate() + 15);
+
+// ==================== Render Event ====================
 function renderEvent(ev, idx) {
   const start = ev.start.toDate();
+  const end = ev.end.toDate();
+
+  // chỉ hiển thị sự kiện trong khoảng 15 ngày trước/sau
+  if (start < startDate || start > endDate) return;
+
   const left = (start - startDate) / 86400000 * pxPerDay;
+
   const el = document.createElement("div");
   el.className = "event";
   el.style.left = left + "px";
   el.textContent = ev.title;
+
+  // tooltip khi hover => còn lại bao lâu
+  el.title = "Bắt đầu: " + start.toLocaleString() + "\nKết thúc: " + end.toLocaleString();
+
   timeline.appendChild(el);
 }
 
-// load realtime từ Firestore
-eventsCol.orderBy("start").onSnapshot(snap => {
-  document.querySelectorAll(".event").forEach(e => e.remove());
+// ==================== Load Events Realtime ====================
+eventsCol.orderBy("start").onSnapshot((snap) => {
+  // xoá sự kiện cũ trước khi render
+  document.querySelectorAll(".event").forEach((e) => e.remove());
+
   let idx = 0;
-  snap.forEach(doc => renderEvent(doc.data(), idx++));
+  snap.forEach((doc) => {
+    renderEvent(doc.data(), idx++);
+  });
 });
 
-// thêm sự kiện
+// ==================== Add New Event ====================
 document.getElementById("save").onclick = async () => {
   const title = document.getElementById("title").value;
-  const start = new Date(document.getElementById("start").value);
-  const end = new Date(document.getElementById("end").value);
-  await eventsCol.add({ title, start, end });
+  const startInput = document.getElementById("start").value;
+  const endInput = document.getElementById("end").value;
+
+  if (!title || !startInput || !endInput) {
+    alert("Vui lòng nhập đầy đủ thông tin sự kiện!");
+    return;
+  }
+
+  const start = new Date(startInput);
+  const end = new Date(endInput);
+
+  await eventsCol.add({
+    title,
+    start,
+    end,
+  });
+
+  // reset form
+  document.getElementById("title").value = "";
+  document.getElementById("start").value = "";
+  document.getElementById("end").value = "";
 };
 
-// update đường đỏ
+// ==================== Update Red Now Line ====================
 function updateNowLine() {
   const now = new Date();
+
+  // vị trí tính theo ngày từ startDate
   const diff = (now - startDate) / 86400000;
   const left = diff * pxPerDay;
 
@@ -52,11 +102,14 @@ function updateNowLine() {
   nowLabel.style.left = left + "px";
 
   const timeStr =
-    now.getHours().toString().padStart(2,"0") + ":" +
-    now.getMinutes().toString().padStart(2,"0") + ":" +
-    now.getSeconds().toString().padStart(2,"0");
+    now.getHours().toString().padStart(2, "0") +
+    ":" +
+    now.getMinutes().toString().padStart(2, "0") +
+    ":" +
+    now.getSeconds().toString().padStart(2, "0");
 
   nowLabel.textContent = timeStr;
 }
+
 setInterval(updateNowLine, 1000);
 updateNowLine();
