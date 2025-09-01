@@ -1,32 +1,90 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Dòng thời gian sự kiện</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css" rel="stylesheet"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <meta charset="UTF-8" />
+  <title>Timeline Firestore</title>
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, addDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+    // Firebase config (thay bằng config của bạn trong Firebase Console)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Khởi tạo Firebase + Firestore
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Sau khi load web
+    window.addEventListener("DOMContentLoaded", () => {
+      // Khởi tạo timeline
+      const container = document.getElementById("timeline");
+      const items = new vis.DataSet([]);
+      const options = { stack: false };
+      const timeline = new vis.Timeline(container, items, options);
+
+      // Lấy dữ liệu Firestore real-time
+      const q = query(collection(db, "events"), orderBy("start", "asc"));
+      onSnapshot(q, (snapshot) => {
+        const data = [];
+        snapshot.forEach((doc) => {
+          const e = doc.data();
+          data.push({
+            id: doc.id,
+            content: e.content,
+            start: e.start,
+            end: e.end || null,
+            style: `background-color:${e.color || "#1976d2"}; color: white;`
+          });
+        });
+        items.clear();
+        items.add(data);
+        console.log("Đã tải sự kiện:", data); // Log kiểm tra
+      });
+
+      // Bắt sự kiện bấm nút lưu
+      document.getElementById("saveEvent").addEventListener("click", async () => {
+        const content = document.getElementById("content").value;
+        const start = document.getElementById("start").value;
+        const end = document.getElementById("end").value;
+        const color = document.getElementById("color").value;
+
+        if (!content || !start) {
+          alert("Nhập ít nhất tiêu đề và ngày bắt đầu");
+          return;
+        }
+
+        await addDoc(collection(db, "events"), {
+          content,
+          start,
+          end,
+          color
+        });
+        console.log("Đã thêm sự kiện:", content);
+      });
+    });
+  </script>
+
+  <!-- vis-timeline CSS & JS -->
+  <link href="https://unpkg.com/vis-timeline@7.7.0/dist/vis-timeline-graph2d.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/vis-timeline@7.7.0/standalone/umd/vis-timeline-graph2d.min.js"></script>
 </head>
 <body>
-  <h2>Dòng thời gian sự kiện</h2>
-
-  <form id="eventForm">
-    <input type="hidden" id="eventId">
-    <input type="text" id="eventName" placeholder="Tên sự kiện" required>
-    <input type="date" id="startDate" required>
-    <input type="date" id="endDate" required>
-    <input type="color" id="color" value="#ff0000">
-    <button type="submit">Lưu sự kiện</button>
-  </form>
-
-  <div id="timeline"></div>
-
-  <ul id="eventList"></ul>
-
-  <script src="script.js"></script>
+  <h2>📅 Timeline Firestore</h2>
+  <div>
+    <input type="text" id="content" placeholder="Tên sự kiện">
+    <input type="date" id="start">
+    <input type="date" id="end">
+    <input type="color" id="color" value="#1976d2">
+    <button id="saveEvent">Lưu sự kiện</button>
+  </div>
+  <div id="timeline" style="height: 400px; border:1px solid #ccc; margin-top:10px;"></div>
 </body>
 </html>
