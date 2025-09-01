@@ -1,5 +1,5 @@
-// Bước 1: Thay thế thông tin cấu hình Firebase của bạn vào đây
-// Bạn có thể tìm thấy thông tin này trong phần Cài đặt dự án của Firebase
+
+// ==== Firebase Config (thay bằng config của bạn) ====
 const firebaseConfig = {
     apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
     authDomain: "timeline-43aac.firebaseapp.com",
@@ -10,93 +10,89 @@ const firebaseConfig = {
     measurementId: "G-5BRCYENZ6P"
   };
 
-// Khởi tạo Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+// Init Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(app);
 
-// Lấy các phần tử DOM
-const timelineEl = document.getElementById('timeline');
-const eventForm = document.getElementById('event-form');
-const eventNameInput = document.getElementById('event-name');
-const eventStartInput = document.getElementById('event-start');
-const eventEndInput = document.getElementById('event-end');
+// ==== Timeline ====
+var items = new vis.DataSet([]);
+var container = document.getElementById('timeline');
+var options = { stack: false, showCurrentTime: true, orientation: 'top' };
+var timeline = new vis.Timeline(container, items, options);
 
-// Bước 2: Hàm để thêm sự kiện vào Firebase
-const addEvent = async (event) => {
-    event.preventDefault();
+var form = document.getElementById('eventForm');
+var eventList = document.getElementById('eventList');
 
-    const name = eventNameInput.value;
-    const start = eventStartInput.value;
-    const end = eventEndInput.value;
+// Render danh sách
+function renderList(events) {
+  eventList.innerHTML = "";
+  events.sort((a, b) => new Date(a.start) - new Date(b.start));
+  events.forEach(ev => {
+    let li = document.createElement('li');
+    li.innerHTML = `
+      <span style="color:${ev.color}">${ev.content} (${ev.start} → ${ev.end})</span>
+      <div>
+        <button onclick="editEvent('${ev.id}')">Sửa</button>
+        <button onclick="deleteEvent('${ev.id}')">Xóa</button>
+      </div>
+    `;
+    eventList.appendChild(li);
+  });
+}
 
-    if (!name || !start || !end) {
-        alert("Vui lòng điền đầy đủ thông tin sự kiện.");
-        return;
-    }
-
-    try {
-        await db.collection("events").add({
-            name: name,
-            start_time: new Date(start),
-            end_time: new Date(end)
-        });
-        console.log("Sự kiện đã được thêm thành công!");
-    } catch (e) {
-        console.error("Lỗi khi thêm sự kiện: ", e);
-    }
-    
-    eventForm.reset();
-};
-
-// Bước 3: Hàm để xóa sự kiện khỏi Firebase
-const deleteEvent = async (eventId) => {
-    try {
-        await db.collection("events").doc(eventId).delete();
-        console.log("Sự kiện đã được xóa thành công!");
-    } catch (e) {
-        console.error("Lỗi khi xóa sự kiện: ", e);
-    }
-};
-
-// Bước 4: Hàm để vẽ các sự kiện lên giao diện
-const renderEvents = (events) => {
-    timelineEl.innerHTML = '';
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    events.forEach(event => {
-        const eventEl = document.createElement('div');
-        eventEl.className = 'timeline-event';
-        eventEl.dataset.id = event.id;
-
-        // Tính toán vị trí và chiều rộng dựa trên thời gian
-        const startTime = event.start_time.toDate();
-        const endTime = event.end_time.toDate();
-        const startHour = (startTime.getTime() - startOfDay.getTime()) / (1000 * 60 * 60);
-        const durationHours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-
-        eventEl.style.left = `${(startHour / 24) * 100}%`;
-        eventEl.style.width = `${(durationHours / 24) * 100}%`;
-        
-        // Thêm nội dung và nút xóa
-        eventEl.innerHTML = `
-            <span class="event-name">${event.name}</span>
-            <button class="delete-btn" onclick="deleteEvent('${event.id}')">X</button>
-        `;
-        timelineEl.appendChild(eventEl);
+// Load dữ liệu Firestore realtime
+db.collection("events").onSnapshot(snapshot => {
+  let allEvents = [];
+  items.clear();
+  snapshot.forEach(doc => {
+    let ev = doc.data();
+    ev.id = doc.id;
+    allEvents.push(ev);
+    items.add({
+      id: ev.id,
+      content: ev.content,
+      start: ev.start,
+      end: ev.end,
+      style: `background-color:${ev.color}; color:white;`,
+      color: ev.color
     });
-};
-
-// Bước 5: Lắng nghe sự thay đổi của dữ liệu trong Firestore
-db.collection("events").onSnapshot((snapshot) => {
-    const events = [];
-    snapshot.forEach(doc => {
-        events.push({ id: doc.id, ...doc.data() });
-    });
-    // Sắp xếp sự kiện theo thời gian bắt đầu
-    events.sort((a, b) => a.start_time.toDate() - b.start_time.toDate());
-    renderEvents(events);
+  });
+  renderList(allEvents);
 });
 
-// Gán hàm addEvent cho form
-eventForm.addEventListener('submit', addEvent);
+// Thêm / Cập nhật sự kiện
+form.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  let id = document.getElementById('eventId').value;
+  let name = document.getElementById('eventName').value;
+  let start = document.getElementById('startDate').value;
+  let end = document.getElementById('endDate').value;
+  let color = document.getElementById('color').value;
+
+  let eventData = { content: name, start, end, color };
+
+  if (id) {
+    await db.collection("events").doc(id).set(eventData);
+  } else {
+    await db.collection("events").add(eventData);
+  }
+
+  form.reset();
+  document.getElementById('eventId').value = "";
+});
+
+// Sửa sự kiện
+async function editEvent(id) {
+  let docRef = await db.collection("events").doc(id).get();
+  let ev = docRef.data();
+  document.getElementById('eventId').value = id;
+  document.getElementById('eventName').value = ev.content;
+  document.getElementById('startDate').value = ev.start;
+  document.getElementById('endDate').value = ev.end;
+  document.getElementById('color').value = ev.color;
+}
+
+// Xóa sự kiện
+async function deleteEvent(id) {
+  await db.collection("events").doc(id).delete();
+}
