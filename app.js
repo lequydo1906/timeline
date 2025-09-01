@@ -12,6 +12,26 @@ const db = firebase.firestore();
 const eventsCol = db.collection("events");
 
 // ==================== Timeline Setup ====================
+const timeline = document.getElementById("timeline");
+const nowLine = document.getElementById("now-line");
+const nowLabel = document.getElementById("now-label");
+
+// mỗi ngày chiếm bao nhiêu pixel
+const pxPerDay = 200;
+
+// lấy ngày hiện tại
+const today = new Date();
+
+// mốc bắt đầu = 15 ngày trước
+const startDate = new Date(today);
+startDate.setHours(0, 0, 0, 0);
+startDate.setDate(today.getDate() - 15);
+
+// mốc kết thúc = 15 ngày sau
+const endDate = new Date(today);
+endDate.setHours(23, 59, 59, 999);
+endDate.setDate(today.getDate() + 15);
+
 // ==================== Draw Day Markers ====================
 function renderDayMarkers() {
   let day = new Date(startDate);
@@ -35,29 +55,7 @@ function renderDayMarkers() {
     day.setDate(day.getDate() + 1);
   }
 }
-
-// gọi hàm để hiển thị trục ngày
 renderDayMarkers();
-
-const timeline = document.getElementById("timeline");
-const nowLine = document.getElementById("now-line");
-const nowLabel = document.getElementById("now-label");
-
-// mỗi ngày chiếm bao nhiêu pixel
-const pxPerDay = 200;
-
-// lấy ngày hiện tại
-const today = new Date();
-
-// mốc bắt đầu = 15 ngày trước
-const startDate = new Date(today);
-startDate.setHours(0, 0, 0, 0); // reset về 0h
-startDate.setDate(today.getDate() - 15);
-
-// mốc kết thúc = 15 ngày sau
-const endDate = new Date(today);
-endDate.setHours(23, 59, 59, 999);
-endDate.setDate(today.getDate() + 15);
 
 // ==================== Render Event ====================
 function renderEvent(ev, idx) {
@@ -74,15 +72,16 @@ function renderEvent(ev, idx) {
   el.style.left = left + "px";
   el.textContent = ev.title;
 
-  // tooltip khi hover => còn lại bao lâu
-  el.title = "Bắt đầu: " + start.toLocaleString() + "\nKết thúc: " + end.toLocaleString();
+  // tooltip khi hover => thời gian chi tiết
+  el.title =
+    "Bắt đầu: " + start.toLocaleString() + "\nKết thúc: " + end.toLocaleString();
 
   timeline.appendChild(el);
 }
 
 // ==================== Load Events Realtime ====================
 eventsCol.orderBy("start").onSnapshot((snap) => {
-  // xoá sự kiện cũ trước khi render
+  // xoá sự kiện cũ trước khi render lại
   document.querySelectorAll(".event").forEach((e) => e.remove());
 
   let idx = 0;
@@ -140,4 +139,3 @@ function updateNowLine() {
 
 setInterval(updateNowLine, 1000);
 updateNowLine();
-
