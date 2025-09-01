@@ -1,34 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <title>Timeline Demo</title>
-  <link rel="stylesheet" href="style.css" />
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-</head>
-<body>
-  <h2>Timeline Demo</h2>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Timeline (Ngày)</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Timeline</h1>
+      <div class="actions">
+        <button id="goto-today" type="button" title="Cuộn về thời điểm hiện tại">Hôm nay</button>
+      </div>
+    </header>
 
-  <!-- Form thêm sự kiện -->
-  <div id="form">
-    <input id="title" type="text" placeholder="Tên sự kiện" />
-    <input id="start" type="datetime-local" />
-    <input id="end" type="datetime-local" />
-    <button id="save">Lưu</button>
-  </div>
+    <section class="controls">
+      <div class="field">
+        <label for="title">Tiêu đề</label>
+        <input id="title" type="text" placeholder="Nhập tiêu đề sự kiện" />
+      </div>
+      <div class="field">
+        <label for="start">Bắt đầu</label>
+        <input id="start" type="datetime-local" />
+      </div>
+      <div class="field">
+        <label for="end">Kết thúc</label>
+        <input id="end" type="datetime-local" />
+      </div>
+      <button id="save" type="button">Lưu sự kiện</button>
+    </section>
 
-  <!-- Timeline container -->
-  <div id="timeline-container">
-    <div id="timeline">
-      <!-- Đường chỉ đỏ hiện tại -->
-      <div id="now-line"></div>
-      <div id="now-label"></div>
-    </div>
-  </div>
+    <section id="timeline-wrapper">
+      <div id="timeline">
+        <div id="now-line"></div>
+        <div id="now-label"></div>
+      </div>
+    </section>
 
-  <!-- App JS -->
-  <script src="app.js"></script>
-</body>
+    <footer class="legend">
+      <div class="pill sample-event">Sự kiện</div>
+      <div class="pill now">Thời điểm hiện tại</div>
+    </footer>
+
+    <!-- Firebase v8 (phù hợp với code dạng firebase.initializeApp / firebase.firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- App -->
+    <script src="./script.js"></script>
+  </body>
 </html>
