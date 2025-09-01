@@ -95,12 +95,16 @@ body {
     linear-gradient(to bottom, rgba(0,0,0,0) 48px, rgba(0,0,0,0.04) 49px, rgba(0,0,0,0.04) 50px, rgba(0,0,0,0) 51px) no-repeat;
 }
 
-#timeline{
-  position: relative;
-  height: 100%;
-  /* width sẽ được set bằng JS */
-  padding-top: 56px; /* chừa chỗ cho nhãn ngày */
+#timeline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #9ca3af;
 }
+
 
 /* Vạch ngày */
 /* Vạch ngày: thay vì đường dọc full height, ta chỉ vẽ tick ngắn bên trên */
@@ -195,4 +199,5 @@ body {
   border-radius: 999px;
   background: var(--now);
 }
+
 
