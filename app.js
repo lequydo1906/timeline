@@ -12,6 +12,33 @@ const db = firebase.firestore();
 const eventsCol = db.collection("events");
 
 // ==================== Timeline Setup ====================
+// ==================== Draw Day Markers ====================
+function renderDayMarkers() {
+  let day = new Date(startDate);
+  while (day <= endDate) {
+    const left = (day - startDate) / 86400000 * pxPerDay;
+
+    const marker = document.createElement("div");
+    marker.className = "day-marker";
+    marker.style.left = left + "px";
+
+    const label = document.createElement("div");
+    label.className = "day-label";
+    label.textContent =
+      day.getDate().toString().padStart(2, "0") +
+      "/" +
+      (day.getMonth() + 1).toString().padStart(2, "0");
+
+    marker.appendChild(label);
+    timeline.appendChild(marker);
+
+    day.setDate(day.getDate() + 1);
+  }
+}
+
+// gọi hàm để hiển thị trục ngày
+renderDayMarkers();
+
 const timeline = document.getElementById("timeline");
 const nowLine = document.getElementById("now-line");
 const nowLabel = document.getElementById("now-label");
@@ -113,3 +140,4 @@ function updateNowLine() {
 
 setInterval(updateNowLine, 1000);
 updateNowLine();
+
