@@ -2,20 +2,14 @@
 <html lang="vi">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>Timeline (Ngày)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Timeline Trục Ngang</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <!-- Header -->
     <header class="app-header">
-      <h1>Timeline</h1>
-      <div class="actions">
-        <button id="goto-today" type="button">Hôm nay</button>
-      </div>
+      <h1>Timeline Trục Ngang</h1>
+      <button id="goto-today">Hôm nay</button>
     </header>
 
     <!-- Form thêm sự kiện -->
@@ -32,25 +26,24 @@
         <label for="end">Kết thúc</label>
         <input id="end" type="datetime-local" />
       </div>
-      <button id="save" type="button">Lưu sự kiện</button>
+      <button id="save">Lưu</button>
     </section>
 
-    <!-- Timeline -->
+    <!-- Timeline ngang -->
     <section id="timeline-wrapper">
       <div id="timeline">
-        <!-- Các vạch ngày (day-marker) sẽ được script.js render -->
+        <!-- JS sẽ vẽ thêm các .day-marker + .day-label -->
         <div id="now-line"></div>
         <div id="now-label"></div>
       </div>
     </section>
 
-    <!-- Ghi chú -->
     <footer class="legend">
       <div class="pill sample-event">Sự kiện</div>
       <div class="pill now">Thời điểm hiện tại</div>
     </footer>
 
-    <!-- Firebase v8 (phù hợp với code dạng firebase.initializeApp / firestore) -->
+    <!-- Firebase v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
