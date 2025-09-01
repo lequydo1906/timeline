@@ -10,13 +10,15 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <!-- Header -->
     <header class="app-header">
       <h1>Timeline</h1>
       <div class="actions">
-        <button id="goto-today" type="button" title="Cuộn về thời điểm hiện tại">Hôm nay</button>
+        <button id="goto-today" type="button">Hôm nay</button>
       </div>
     </header>
 
+    <!-- Form thêm sự kiện -->
     <section class="controls">
       <div class="field">
         <label for="title">Tiêu đề</label>
@@ -33,23 +35,26 @@
       <button id="save" type="button">Lưu sự kiện</button>
     </section>
 
+    <!-- Timeline -->
     <section id="timeline-wrapper">
       <div id="timeline">
+        <!-- Các vạch ngày (day-marker) sẽ được script.js render -->
         <div id="now-line"></div>
         <div id="now-label"></div>
       </div>
     </section>
 
+    <!-- Ghi chú -->
     <footer class="legend">
       <div class="pill sample-event">Sự kiện</div>
       <div class="pill now">Thời điểm hiện tại</div>
     </footer>
 
-    <!-- Firebase v8 (phù hợp với code dạng firebase.initializeApp / firebase.firestore) -->
+    <!-- Firebase v8 (phù hợp với code dạng firebase.initializeApp / firestore) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <!-- App -->
+    <!-- Code timeline -->
     <script src="./script.js"></script>
   </body>
 </html>
