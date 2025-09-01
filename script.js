@@ -1,4 +1,7 @@
-// ==== Firebase config ====
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔥 Thay config này bằng của bạn
 const firebaseConfig = {
       apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
       authDomain: "timeline-43aac.firebaseapp.com",
@@ -7,128 +10,103 @@ const firebaseConfig = {
       messagingSenderId: "732658035286",
       appId: "1:732658035286:web:40091d26eee343579aa9f7",
     };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-// ==== Elements ====
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const eventsCol = collection(db, "events");
+
 const timeline = document.getElementById("timeline");
 const nowLine = document.getElementById("nowLine");
 const nowLabel = document.getElementById("nowLabel");
 const tooltip = document.getElementById("tooltip");
 
+const startDate = new Date("2025-08-28");
+const daysToShow = 14;
 const pxPerDay = 150;
-const daysToShow = 30;
-const startDate = new Date();
-startDate.setHours(0,0,0,0);
 
-let editingId = null; // để lưu id khi sửa
+// Vẽ trục ngày
+for (let i = 0; i < daysToShow; i++) {
+  const d = new Date(startDate.getTime() + i * 86400000);
+  const el = document.createElement("div");
+  el.className = "day";
+  el.textContent = d.getDate() + "/" + (d.getMonth() + 1);
+  timeline.appendChild(el);
+}
 
-// ==== Draw days ====
-for(let i=0;i<daysToShow;i++){
-  const d = new Date(startDate.getTime() + i*86400000);
+// Render sự kiện
+function renderEvent(ev, idx) {
+  const start = ev.start.toDate();
+  const end = ev.end.toDate();
+  const left = ((start - startDate) / 86400000) * pxPerDay;
+  const width = ((end - start) / 86400000) * pxPerDay;
+
   const div = document.createElement("div");
-  div.className = "day";
-  div.innerText = d.getDate()+"/"+(d.getMonth()+1);
+  div.className = "event";
+  div.style.left = left + "px";
+  div.style.top = 50 + idx * 40 + "px";
+  div.style.width = width + "px";
+  div.textContent = ev.title;
+
+  div.addEventListener("mousemove", e => {
+    const now = new Date();
+    const diff = end - now;
+    if (diff > 0) {
+      const hrs = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      tooltip.textContent = `Còn lại ${hrs}h ${mins}m ${secs}s`;
+    } else {
+      tooltip.textContent = "Đã kết thúc";
+    }
+    tooltip.style.display = "block";
+    tooltip.style.left = (e.pageX + 10) + "px";
+    tooltip.style.top = (e.pageY - 20) + "px";
+  });
+  div.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+
   timeline.appendChild(div);
 }
 
-// ==== Update red line ====
-function updateNowLine(){
+// Realtime load events
+onSnapshot(eventsCol, snap => {
+  document.querySelectorAll(".event").forEach(e => e.remove());
+  let idx = 0;
+  snap.forEach(doc => {
+    renderEvent(doc.data(), idx++);
+  });
+});
+
+// Thêm sự kiện
+document.getElementById("addBtn").addEventListener("click", async () => {
+  const title = document.getElementById("title").value;
+  const start = new Date(document.getElementById("start").value);
+  const end = new Date(document.getElementById("end").value);
+  if (!title || !start || !end) return alert("Nhập đủ thông tin!");
+
+  await addDoc(eventsCol, {
+    title,
+    start: Timestamp.fromDate(start),
+    end: Timestamp.fromDate(end)
+  });
+});
+
+// Đường chỉ đỏ
+function updateNowLine() {
   const now = new Date();
-  const dayDiff = Math.floor((now - startDate) / 86400000);
-  const secOfDay = now.getHours()*3600 + now.getMinutes()*60 + now.getSeconds();
-  const percent = secOfDay / 86400;
-  const left = dayDiff * pxPerDay + percent*pxPerDay;
+  const dayDiff = (now - startDate) / 86400000;
+  const secOfDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+  const percent = secOfDay / (24 * 3600);
+  const left = dayDiff * pxPerDay + percent * pxPerDay;
 
   nowLine.style.left = left + "px";
   nowLabel.style.left = left + "px";
-  nowLabel.textContent = now.toTimeString().slice(0,8);
+  nowLabel.textContent = now.toTimeString().split(" ")[0];
 
-  // auto scroll
   const rect = timeline.getBoundingClientRect();
-  const target = left - rect.width/2;
-  timeline.scrollLeft += (target - timeline.scrollLeft)*0.2;
+  const targetScroll = left - rect.width / 2;
+  timeline.scrollLeft += (targetScroll - timeline.scrollLeft) * 0.2;
 }
 setInterval(updateNowLine, 1000);
-
-// ==== CRUD ====
-function addEvent(){
-  const title=document.getElementById("title").value;
-  const start=new Date(document.getElementById("start").value);
-  const end=new Date(document.getElementById("end").value);
-  if(!title||!start||!end) return alert("Điền đủ thông tin");
-  db.collection("events").add({title,start:start.getTime(),end:end.getTime()});
-  clearForm();
-}
-
-function editEvent(ev){
-  document.getElementById("title").value = ev.title;
-  document.getElementById("start").value = new Date(ev.start).toISOString().slice(0,16);
-  document.getElementById("end").value = new Date(ev.end).toISOString().slice(0,16);
-  document.getElementById("updateBtn").style.display="inline-block";
-  document.getElementById("cancelBtn").style.display="inline-block";
-  editingId = ev.id;
-}
-
-function updateEvent(){
-  const title=document.getElementById("title").value;
-  const start=new Date(document.getElementById("start").value);
-  const end=new Date(document.getElementById("end").value);
-  if(!editingId) return;
-  db.collection("events").doc(editingId).update({
-    title, start:start.getTime(), end:end.getTime()
-  });
-  clearForm();
-}
-
-function cancelEdit(){
-  clearForm();
-}
-
-function clearForm(){
-  document.getElementById("title").value="";
-  document.getElementById("start").value="";
-  document.getElementById("end").value="";
-  document.getElementById("updateBtn").style.display="none";
-  document.getElementById("cancelBtn").style.display="none";
-  editingId=null;
-}
-
-// ==== Render events ====
-function renderEvents(events){
-  document.querySelectorAll(".event").forEach(e=>e.remove());
-  // sort theo duration (ngắn ở trên)
-  events.sort((a,b)=> (a.end-a.start) - (b.end-b.start));
-  events.forEach((ev,idx)=>{
-    const left = (ev.start-startDate)/86400000*pxPerDay;
-    const width = (ev.end-ev.start)/86400000*pxPerDay;
-    const div=document.createElement("div");
-    div.className="event";
-    div.style.left=left+"px";
-    div.style.top=(40+idx*30)+"px";
-    div.style.width=width+"px";
-    div.textContent=ev.title;
-    // tooltip
-    div.onmouseenter=(e)=>{
-      const remain = ev.end - Date.now();
-      tooltip.style.display="block";
-      tooltip.style.left=e.pageX+"px";
-      tooltip.style.top=e.pageY-20+"px";
-      tooltip.textContent = remain>0 ? 
-        "Còn "+Math.floor(remain/1000/60)+" phút" : "Đã kết thúc";
-    };
-    div.onmouseleave=()=>tooltip.style.display="none";
-    // click để sửa
-    div.onclick=()=>editEvent(ev);
-    // double-click để xóa
-    div.ondblclick=()=>{ if(confirm("Xóa sự kiện?")) db.collection("events").doc(ev.id).delete(); }
-    document.body.appendChild(div);
-  });
-}
-
-// ==== Firestore realtime sync ====
-db.collection("events").onSnapshot(snap=>{
-  const arr=[];
-  snap.forEach(doc=> arr.push({...doc.data(),id:doc.id}));
-  renderEvents(arr);
-});
+updateNowLine();
