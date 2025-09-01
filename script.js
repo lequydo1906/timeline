@@ -1,14 +1,12 @@
-
 // ==== Firebase config ====
 const firebaseConfig = {
-    apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
-    authDomain: "timeline-43aac.firebaseapp.com",
-    projectId: "timeline-43aac",
-    storageBucket: "timeline-43aac.firebasestorage.app",
-    messagingSenderId: "732658035286",
-    appId: "1:732658035286:web:40091d26eee343579aa9f7",
-    measurementId: "G-5BRCYENZ6P"
-};
+      apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
+      authDomain: "timeline-43aac.firebaseapp.com",
+      projectId: "timeline-43aac",
+      storageBucket: "timeline-43aac.firebasestorage.app",
+      messagingSenderId: "732658035286",
+      appId: "1:732658035286:web:40091d26eee343579aa9f7",
+    };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -22,6 +20,8 @@ const pxPerDay = 150;
 const daysToShow = 30;
 const startDate = new Date();
 startDate.setHours(0,0,0,0);
+
+let editingId = null; // để lưu id khi sửa
 
 // ==== Draw days ====
 for(let i=0;i<daysToShow;i++){
@@ -58,12 +58,46 @@ function addEvent(){
   const end=new Date(document.getElementById("end").value);
   if(!title||!start||!end) return alert("Điền đủ thông tin");
   db.collection("events").add({title,start:start.getTime(),end:end.getTime()});
+  clearForm();
+}
+
+function editEvent(ev){
+  document.getElementById("title").value = ev.title;
+  document.getElementById("start").value = new Date(ev.start).toISOString().slice(0,16);
+  document.getElementById("end").value = new Date(ev.end).toISOString().slice(0,16);
+  document.getElementById("updateBtn").style.display="inline-block";
+  document.getElementById("cancelBtn").style.display="inline-block";
+  editingId = ev.id;
+}
+
+function updateEvent(){
+  const title=document.getElementById("title").value;
+  const start=new Date(document.getElementById("start").value);
+  const end=new Date(document.getElementById("end").value);
+  if(!editingId) return;
+  db.collection("events").doc(editingId).update({
+    title, start:start.getTime(), end:end.getTime()
+  });
+  clearForm();
+}
+
+function cancelEdit(){
+  clearForm();
+}
+
+function clearForm(){
+  document.getElementById("title").value="";
+  document.getElementById("start").value="";
+  document.getElementById("end").value="";
+  document.getElementById("updateBtn").style.display="none";
+  document.getElementById("cancelBtn").style.display="none";
+  editingId=null;
 }
 
 // ==== Render events ====
 function renderEvents(events){
   document.querySelectorAll(".event").forEach(e=>e.remove());
-  // sort theo duration
+  // sort theo duration (ngắn ở trên)
   events.sort((a,b)=> (a.end-a.start) - (b.end-b.start));
   events.forEach((ev,idx)=>{
     const left = (ev.start-startDate)/86400000*pxPerDay;
@@ -84,8 +118,10 @@ function renderEvents(events){
         "Còn "+Math.floor(remain/1000/60)+" phút" : "Đã kết thúc";
     };
     div.onmouseleave=()=>tooltip.style.display="none";
-    // click -> xóa
-    div.onclick=()=>{ if(confirm("Xóa sự kiện?")) db.collection("events").doc(ev.id).delete(); }
+    // click để sửa
+    div.onclick=()=>editEvent(ev);
+    // double-click để xóa
+    div.ondblclick=()=>{ if(confirm("Xóa sự kiện?")) db.collection("events").doc(ev.id).delete(); }
     document.body.appendChild(div);
   });
 }
@@ -96,29 +132,3 @@ db.collection("events").onSnapshot(snap=>{
   snap.forEach(doc=> arr.push({...doc.data(),id:doc.id}));
   renderEvents(arr);
 });
-
-    await db.collection("events").doc(id).set(eventData);
-  } else {
-    await db.collection("events").add(eventData);
-  }
-
-  form.reset();
-  document.getElementById('eventId').value = "";
-});
-
-// Sửa sự kiện
-async function editEvent(id) {
-  let docRef = await db.collection("events").doc(id).get();
-  let ev = docRef.data();
-  document.getElementById('eventId').value = id;
-  document.getElementById('eventName').value = ev.content;
-  document.getElementById('startDate').value = ev.start;
-  document.getElementById('endDate').value = ev.end;
-  document.getElementById('color').value = ev.color;
-}
-
-// Xóa sự kiện
-async function deleteEvent(id) {
-  await db.collection("events").doc(id).delete();
-}
-
