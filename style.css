@@ -1,9 +1,67 @@
-body { font-family: sans-serif; margin:0; }
-#timeline { position: relative; overflow-x: scroll; white-space: nowrap; height: 300px; border-top:2px solid #ccc; }
-.day { display:inline-block; width:150px; height:100%; border-left:1px solid #ddd; text-align:center; font-size:12px; }
-.event { position:absolute; background:#4e8cff; color:#fff; padding:2px 6px; border-radius:4px; font-size:12px; cursor:pointer; }
-#nowLine { position:absolute; top:0; bottom:0; width:2px; background:red; }
-#nowLabel { position:absolute; top:0; background:red; color:#fff; font-size:12px; padding:1px 4px; border-radius:3px; transform:translateX(-50%); white-space:nowrap; }
-#form { padding:10px; border-bottom:1px solid #ccc; }
-#form input { margin:5px; }
-.tooltip { position:absolute; background:#000; color:#fff; padding:3px 6px; border-radius:4px; font-size:11px; display:none; white-space:nowrap; }
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+.timeline-container {
+  position: relative;
+  overflow-x: auto;
+  white-space: nowrap;
+  height: 250px;
+  border-top: 1px solid #ccc;
+}
+.day {
+  display: inline-block;
+  width: 150px;
+  height: 40px;
+  border-left: 1px solid #ddd;
+  text-align: center;
+  font-size: 12px;
+  line-height: 40px;
+  background: #fafafa;
+}
+.event {
+  position: absolute;
+  height: 30px;
+  background: #4cafef;
+  border-radius: 6px;
+  color: white;
+  text-align: center;
+  line-height: 30px;
+  cursor: pointer;
+}
+.now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: red;
+}
+.now-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: red;
+  color: white;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.tooltip {
+  position: absolute;
+  background: black;
+  color: white;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  display: none;
+}
+.form {
+  margin: 10px;
+}
+.form input {
+  margin: 4px;
+  padding: 4px;
+}
