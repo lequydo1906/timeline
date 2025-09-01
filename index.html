@@ -2,28 +2,24 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Timeline</title>
+  <title>Timeline Firestore</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="form">
+    <input type="text" id="title" placeholder="Tên sự kiện">
+    <input type="datetime-local" id="start">
+    <input type="datetime-local" id="end">
+    <button id="addBtn">Thêm sự kiện</button>
+  </div>
 
-<div id="form">
-  <input id="title" placeholder="Tên sự kiện">
-  <input id="start" type="datetime-local">
-  <input id="end" type="datetime-local">
-  <button onclick="addEvent()">Thêm</button>
-  <button onclick="updateEvent()" style="display:none;" id="updateBtn">Cập nhật</button>
-  <button onclick="cancelEdit()" style="display:none;" id="cancelBtn">Hủy</button>
-</div>
+  <div class="timeline-container" id="timeline">
+    <div class="now-line" id="nowLine"></div>
+    <div class="now-label" id="nowLabel"></div>
+  </div>
+  <div class="tooltip" id="tooltip"></div>
 
-<div id="timeline"></div>
-<div id="nowLine"></div>
-<div id="nowLabel"></div>
-<div id="tooltip" class="tooltip"></div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
-<script src="app.js"></script>
+  <!-- Firebase SDK -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
