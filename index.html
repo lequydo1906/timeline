@@ -2,24 +2,26 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Timeline Firestore</title>
+  <title>Timeline</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 </head>
 <body>
-  <div class="form">
+  <h1>Timeline</h1>
+
+  <div id="timeline">
+    <div id="now-line"></div>
+    <div id="now-label"></div>
+  </div>
+
+  <div id="form">
     <input type="text" id="title" placeholder="Tên sự kiện">
     <input type="datetime-local" id="start">
     <input type="datetime-local" id="end">
-    <button id="addBtn">Thêm sự kiện</button>
+    <button id="save">Lưu</button>
   </div>
 
-  <div class="timeline-container" id="timeline">
-    <div class="now-line" id="nowLine"></div>
-    <div class="now-label" id="nowLabel"></div>
-  </div>
-  <div class="tooltip" id="tooltip"></div>
-
-  <!-- Firebase SDK -->
-  <script type="module" src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
