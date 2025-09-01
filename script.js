@@ -70,13 +70,19 @@ function renderEvent(ev, idx) {
 }
 
 // Realtime load events
+
 onSnapshot(eventsCol, snap => {
+  console.clear();
+  console.log("📌 Danh sách sự kiện từ Firestore:");
   document.querySelectorAll(".event").forEach(e => e.remove());
   let idx = 0;
   snap.forEach(doc => {
-    renderEvent(doc.data(), idx++);
+    const data = doc.data();
+    console.log(doc.id, data);
+    renderEvent(data, idx++);
   });
 });
+
 
 // Thêm sự kiện
 document.getElementById("addBtn").addEventListener("click", async () => {
@@ -110,3 +116,4 @@ function updateNowLine() {
 }
 setInterval(updateNowLine, 1000);
 updateNowLine();
+
