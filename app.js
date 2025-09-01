@@ -1,12 +1,12 @@
 // ==================== Firebase Config ====================
 const firebaseConfig = {
-      apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
-      authDomain: "timeline-43aac.firebaseapp.com",
-      projectId: "timeline-43aac",
-      storageBucket: "timeline-43aac.firebasestorage.app",
-      messagingSenderId: "732658035286",
-      appId: "1:732658035286:web:40091d26eee343579aa9f7",
-    };
+  apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
+  authDomain: "timeline-43aac.firebaseapp.com",
+  projectId: "timeline-43aac",
+  storageBucket: "timeline-43aac.firebasestorage.app",
+  messagingSenderId: "732658035286",
+  appId: "1:732658035286:web:40091d26eee343579aa9f7",
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const eventsCol = db.collection("events");
@@ -18,16 +18,18 @@ const nowLabel = document.getElementById("now-label");
 
 // mỗi ngày chiếm bao nhiêu pixel
 const pxPerDay = 200;
+const msPerDay = 24 * 60 * 60 * 1000;
+const pxPerMs = pxPerDay / msPerDay;
 
 // lấy ngày hiện tại
 const today = new Date();
 
-// mốc bắt đầu = 15 ngày trước
+// mốc bắt đầu = 15 ngày trước (reset về 00:00:00)
 const startDate = new Date(today);
 startDate.setHours(0, 0, 0, 0);
 startDate.setDate(today.getDate() - 15);
 
-// mốc kết thúc = 15 ngày sau
+// mốc kết thúc = 15 ngày sau (23:59:59)
 const endDate = new Date(today);
 endDate.setHours(23, 59, 59, 999);
 endDate.setDate(today.getDate() + 15);
@@ -36,7 +38,7 @@ endDate.setDate(today.getDate() + 15);
 function renderDayMarkers() {
   let day = new Date(startDate);
   while (day <= endDate) {
-    const left = (day - startDate) / 86400000 * pxPerDay;
+    const left = (day - startDate) * pxPerMs;
 
     const marker = document.createElement("div");
     marker.className = "day-marker";
@@ -52,6 +54,7 @@ function renderDayMarkers() {
     marker.appendChild(label);
     timeline.appendChild(marker);
 
+    // sang ngày kế tiếp
     day.setDate(day.getDate() + 1);
   }
 }
@@ -63,9 +66,9 @@ function renderEvent(ev, idx) {
   const end = ev.end.toDate();
 
   // chỉ hiển thị sự kiện trong khoảng 15 ngày trước/sau
-  if (start < startDate || start > endDate) return;
+  if (end < startDate || start > endDate) return;
 
-  const left = (start - startDate) / 86400000 * pxPerDay;
+  const left = (start - startDate) * pxPerMs;
 
   const el = document.createElement("div");
   el.className = "event";
@@ -120,9 +123,9 @@ document.getElementById("save").onclick = async () => {
 function updateNowLine() {
   const now = new Date();
 
-  // vị trí tính theo ngày từ startDate
-  const diff = (now - startDate) / 86400000;
-  const left = diff * pxPerDay;
+  // vị trí tính theo mili-giây từ startDate
+  const diff = now - startDate;
+  const left = diff * pxPerMs;
 
   nowLine.style.left = left + "px";
   nowLabel.style.left = left + "px";
