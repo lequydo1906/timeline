@@ -1,91 +1,27 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <title>Timeline Firestore</title>
-  <script type="module">
-    // Import Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, addDoc, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // Firebase config (thay bằng config của bạn trong Firebase Console)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
-      authDomain: "timeline-43aac.firebaseapp.com",
-      projectId: "timeline-43aac",
-      storageBucket: "timeline-43aac.firebasestorage.app",
-      messagingSenderId: "732658035286",
-      appId: "1:732658035286:web:40091d26eee343579aa9f7",
-    };
-
-    // Khởi tạo Firebase + Firestore
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Sau khi load web
-    window.addEventListener("DOMContentLoaded", () => {
-      // Khởi tạo timeline
-      const container = document.getElementById("timeline");
-      const items = new vis.DataSet([]);
-      const options = { stack: false };
-      const timeline = new vis.Timeline(container, items, options);
-
-      // Lấy dữ liệu Firestore real-time
-      const q = query(collection(db, "events"), orderBy("start", "asc"));
-      onSnapshot(q, (snapshot) => {
-        const data = [];
-        snapshot.forEach((doc) => {
-          const e = doc.data();
-          data.push({
-            id: doc.id,
-            content: e.content,
-            start: e.start,
-            end: e.end || null,
-            style: `background-color:${e.color || "#1976d2"}; color: white;`
-          });
-        });
-        items.clear();
-        items.add(data);
-        console.log("Đã tải sự kiện:", data); // Log kiểm tra
-      });
-
-      // Bắt sự kiện bấm nút lưu
-      document.getElementById("saveEvent").addEventListener("click", async () => {
-        const content = document.getElementById("content").value;
-        const start = document.getElementById("start").value;
-        const end = document.getElementById("end").value;
-        const color = document.getElementById("color").value;
-
-        if (!content || !start) {
-          alert("Nhập ít nhất tiêu đề và ngày bắt đầu");
-          return;
-        }
-
-        await addDoc(collection(db, "events"), {
-          content,
-          start,
-          end,
-          color
-        });
-        console.log("Đã thêm sự kiện:", content);
-      });
-    });
-  </script>
-
-  <!-- vis-timeline CSS & JS -->
-  <link href="https://unpkg.com/vis-timeline@7.7.0/dist/vis-timeline-graph2d.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/vis-timeline@7.7.0/standalone/umd/vis-timeline-graph2d.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Timeline</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>📅 Timeline Firestore</h2>
-  <div>
-    <input type="text" id="content" placeholder="Tên sự kiện">
-    <input type="date" id="start">
-    <input type="date" id="end">
-    <input type="color" id="color" value="#1976d2">
-    <button id="saveEvent">Lưu sự kiện</button>
-  </div>
-  <div id="timeline" style="height: 400px; border:1px solid #ccc; margin-top:10px;"></div>
+
+<div id="form">
+  <input id="title" placeholder="Tên sự kiện">
+  <input id="start" type="datetime-local">
+  <input id="end" type="datetime-local">
+  <button onclick="addEvent()">Thêm</button>
+</div>
+
+<div id="timeline"></div>
+<div id="nowLine"></div>
+<div id="nowLabel"></div>
+<div id="tooltip" class="tooltip"></div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
-
