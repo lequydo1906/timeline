@@ -1,165 +1,200 @@
-// ==================== Firebase Config ====================
+// Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
-  authDomain: "timeline-43aac.firebaseapp.com",
-  projectId: "timeline-43aac",
-  storageBucket: "timeline-43aac.firebasestorage.app",
-  messagingSenderId: "732658035286",
-  appId: "1:732658035286:web:40091d26eee343579aa9f7",
-};
+      apiKey: "AIzaSyDR8_kXFXR_oWGNptZX_infNrWTm3xbPAM",
+      authDomain: "timeline-43aac.firebaseapp.com",
+      projectId: "timeline-43aac",
+      storageBucket: "timeline-43aac.firebasestorage.app",
+      messagingSenderId: "732658035286",
+      appId: "1:732658035286:web:40091d26eee343579aa9f7",
+    };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const eventsCol = db.collection("events");
 
-// ==================== Timeline Setup ====================
-const wrapper = document.getElementById("timeline-wrapper");
-const timeline = document.getElementById("timeline");
-const nowLine = document.getElementById("now-line");
-const nowLabel = document.getElementById("now-label");
+const pxPerDay = Math.floor(window.innerWidth / 14);
 
-// Cấu hình trục ngày
-const pxPerDay = 200;                         // mỗi ngày = 200px
-const msPerDay = 24 * 60 * 60 * 1000;
-const pxPerMs = pxPerDay / msPerDay;
+function getToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+function getStartEndDate() {
+  const today = getToday();
+  const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7, 0, 0, 0, 0);
+  const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 6, 0, 0, 0, 0);
+  return { startDate, endDate };
+}
+function getDaysCount(startDate, endDate) {
+  return Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+}
 
-// Khoảng hiển thị: từ 15 ngày trước đến 15 ngày sau hôm nay
-const today = new Date();
+const timeline = document.getElementById('timeline');
+const timelineContainer = document.getElementById('timeline-container');
 
-const startDate = new Date(today);
-startDate.setHours(0, 0, 0, 0);
-startDate.setDate(today.getDate() - 15);
+function getDateByIndex(idx, startDate) {
+  return new Date(startDate.getTime() + idx * 24 * 60 * 60 * 1000);
+}
+function getDateIndexFromDate(date, startDate) {
+  if (!(date instanceof Date)) date = new Date(date);
+  return Math.floor((date - startDate) / (1000 * 60 * 60 * 24));
+}
+function calcLeftPx(date, startDate) {
+  if (!(date instanceof Date)) date = new Date(date);
+  const dayIdx = getDateIndexFromDate(date, startDate);
+  const hour = date.getHours();
+  const minute = date.getMinutes();
+  const second = date.getSeconds();
+  let px = dayIdx * pxPerDay;
+  px += hour * pxPerDay / 24;
+  px += minute * pxPerDay / 24 / 60;
+  px += second * pxPerDay / 24 / 3600;
+  return px;
+}
+function getTimeRemaining(endTime) {
+  const now = new Date();
+  const end = new Date(endTime);
+  let diff = end - now;
+  if (diff <= 0) return "Đã kết thúc";
+  let hrs = Math.floor(diff / (1000 * 60 * 60));
+  let mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  let secs = Math.floor((diff % (1000 * 60)) / 1000);
+  return `Còn lại ${hrs}h ${mins}m ${secs}s`;
+}
+function formatTime24h(date) {
+  return date.getHours().toString().padStart(2, '0')
+    + ':' + date.getMinutes().toString().padStart(2, '0')
+    + ':' + date.getSeconds().toString().padStart(2, '0');
+}
+function scrollToCurrentTime(startDate) {
+  const now = new Date();
+  const left = calcLeftPx(now, startDate);
+  timelineContainer.scrollLeft = left - timelineContainer.clientWidth / 2 + pxPerDay;
+}
 
-const endDate = new Date(today);
-endDate.setHours(23, 59, 59, 999);
-endDate.setDate(today.getDate() + 15);
+function renderTimeline(events) {
+  const { startDate, endDate } = getStartEndDate();
+  const daysCount = getDaysCount(startDate, endDate);
+  timeline.innerHTML = "";
+  timeline.style.width = (daysCount * pxPerDay) + "px";
 
-// set width cho timeline theo tổng số ngày hiển thị
-const totalDays = Math.ceil((endDate - startDate) / msPerDay) + 1;
-timeline.style.width = totalDays * pxPerDay + "px";
+  // Đường kẻ dọc + số ngày nằm trên đầu đường kẻ
+  for (let i = 0; i < daysCount; i++) {
+    const date = getDateByIndex(i, startDate);
 
-// ==================== Vẽ vạch & nhãn từng ngày ====================
-function renderDayMarkers() {
-  // clear marker cũ (nếu có)
-  timeline.querySelectorAll(".day-marker").forEach(n => n.remove());
+    // Đường kẻ dọc ngày tại đúng vị trí 0h
+    const line = document.createElement('div');
+    line.className = "timeline-day-line";
+    line.style.position = "absolute";
+    line.style.left = (i * pxPerDay) + "px";
+    line.style.top = "40px";
+    line.style.height = "460px";
+    line.style.width = "1px";
+    timeline.appendChild(line);
 
-  let day = new Date(startDate);
-  while (day <= endDate) {
-    const left = (day - startDate) * pxPerMs;
-
-    const marker = document.createElement("div");
-    marker.className = "day-marker";
-    marker.style.left = left + "px";
-
-    const label = document.createElement("div");
-    label.className = "day-label";
-    const dd = day.getDate().toString().padStart(2, "0");
-    const mm = (day.getMonth() + 1).toString().padStart(2, "0");
-
-    // Ví dụ hiển thị: 01/09 (T2)
-    const dow = ["CN","T2","T3","T4","T5","T6","T7"][day.getDay()];
-    label.textContent = `${dd}/${mm} (${dow})`;
-
-    // đặt label vào đúng vị trí (giữa vạch)
-    label.style.left = "0px"; // vì parent là marker có left rồi
-    marker.appendChild(label);
-    timeline.appendChild(marker);
-
-    day.setDate(day.getDate() + 1);
+    // Số ngày nằm trên đầu đường kẻ
+    const num = document.createElement('div');
+    num.className = "date-col";
+    num.style.position = 'absolute';
+    num.style.left = (i * pxPerDay - 15) + 'px'; // Canh giữa số với đường kẻ
+    num.style.top = "0px";
+    num.innerText = date.getDate();
+    timeline.appendChild(num);
   }
+
+  // Đường chỉ thời gian hiện tại (24h format)
+  function renderCurrentTimeBar() {
+    const now = new Date();
+    const left = calcLeftPx(now, startDate);
+    let currentTimeRow = timeline.querySelector('.current-time-row');
+    if (!currentTimeRow) {
+      currentTimeRow = document.createElement('div');
+      currentTimeRow.className = "current-time-row";
+      timeline.appendChild(currentTimeRow);
+    }
+    currentTimeRow.style.left = left + "px";
+    currentTimeRow.style.top = "40px";
+    currentTimeRow.style.width = "2px";
+    currentTimeRow.style.height = "460px";
+    currentTimeRow.innerHTML = `<div class="current-time-line"></div>
+      <div class="current-time-label" style="top:-32px;left:-40px;">${formatTime24h(now)}</div>`;
+    scrollToCurrentTime(startDate);
+  }
+  renderCurrentTimeBar();
+  if (window.__timelineTimer) clearInterval(window.__timelineTimer);
+  window.__timelineTimer = setInterval(renderCurrentTimeBar, 1000);
+
+  // Event-bar
+  timeline.querySelectorAll(".event-bar").forEach(e => e.remove());
+  document.querySelectorAll('.event-tooltip').forEach(el => el.remove());
+  events.forEach((ev, idx) => {
+    const start = ev.startTime ? new Date(ev.startTime) : new Date(ev.start);
+    const end = ev.endTime ? new Date(ev.endTime) : new Date(ev.end || ev.start);
+    const left = calcLeftPx(start, startDate);
+    const right = calcLeftPx(end, startDate);
+    const width = Math.max(right - left, 4);
+
+    const bar = document.createElement('div');
+    bar.className = `event-bar ${ev.color || ""}`;
+    bar.style.left = left + "px";
+    bar.style.top = (60 + idx * 44) + "px";
+    bar.style.width = width + "px";
+    bar.style.height = "36px";
+    bar.innerHTML = `${ev.name}
+      <span style="margin-left:8px;">${ev.duration || ""}</span>
+      <span style="margin-left:8px;font-size:0.9em;">
+        ${start.getDate()}/${start.getMonth()+1} ${formatTime24h(start)}
+        - ${end.getDate()}/${end.getMonth()+1} ${formatTime24h(end)}
+      </span>
+      <button class="delete-btn" onclick="deleteEvent('${ev.id}')">Xóa</button>`;
+
+    // Tooltip
+    const tooltip = document.createElement('div');
+    tooltip.className = "event-tooltip";
+    tooltip.style.display = "none";
+    document.body.appendChild(tooltip);
+
+    bar.onmousemove = function(e) {
+      tooltip.innerText = getTimeRemaining(end);
+      tooltip.style.left = (e.pageX + 12) + "px";
+      tooltip.style.top = (e.pageY - 10) + "px";
+      tooltip.style.display = "block";
+    };
+    bar.onmouseleave = function() {
+      tooltip.style.display = "none";
+    };
+
+    timeline.appendChild(bar);
+  });
 }
-renderDayMarkers();
 
-// ==================== Render Event ====================
-const EVENT_TOP_BASE = 70;     // bắt đầu hiển thị event sau vùng nhãn
-const EVENT_ROW_H = 28;        // mỗi hàng cao 28px
-const MAX_ROWS = 8;            // số hàng tối đa (có thể tăng nếu nhiều sự kiện)
-
-function renderEvent(ev, idx) {
-  // Firestore Timestamp -> Date
-  const start = ev.start.toDate ? ev.start.toDate() : new Date(ev.start);
-  const end = ev.end?.toDate ? ev.end.toDate() : (ev.end ? new Date(ev.end) : null);
-
-  // bỏ qua nếu hoàn toàn ngoài khoảng hiển thị
-  const effectiveEnd = end ?? start;
-  if (effectiveEnd < startDate || start > endDate) return;
-
-  const left = (start - startDate) * pxPerMs;
-  const width = Math.max(((effectiveEnd - start) || (60 * 60 * 1000)) * pxPerMs, 6); // mặc định 1h nếu thiếu end
-
-  const el = document.createElement("div");
-  el.className = "event";
-  el.style.left = left + "px";
-  el.style.top = (EVENT_TOP_BASE + (idx % MAX_ROWS) * EVENT_ROW_H) + "px";
-  el.style.width = width + "px";
-  el.textContent = ev.title || "(Không tiêu đề)";
-
-  el.title = `Bắt đầu: ${start.toLocaleString()}${end ? `\nKết thúc: ${end.toLocaleString()}` : ""}`;
-
-  timeline.appendChild(el);
-}
-
-// ==================== Load Events Realtime ====================
-eventsCol.orderBy("start").onSnapshot((snap) => {
-  // xoá sự kiện cũ trước khi render lại
-  timeline.querySelectorAll(".event").forEach((e) => e.remove());
-
-  let idx = 0;
-  snap.forEach((doc) => renderEvent(doc.data(), idx++));
+// Firestore realtime
+db.collection("events").onSnapshot(snap => {
+  const events = [];
+  snap.forEach(doc => events.push({ id: doc.id, ...doc.data() }));
+  renderTimeline(events);
 });
 
-// ==================== Add New Event ====================
-document.getElementById("save").onclick = async () => {
-  const title = document.getElementById("title").value.trim();
-  const startInput = document.getElementById("start").value;
-  const endInput = document.getElementById("end").value;
+// Thêm event
+document.getElementById('eventForm').onsubmit = function(e) {
+  e.preventDefault();
+  const startTime = document.getElementById('startTime').value;
+  const endTime = document.getElementById('endTime').value;
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const duration = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
 
-  if (!title || !startInput) {
-    alert("Vui lòng nhập ít nhất tiêu đề và thời điểm bắt đầu!");
-    return;
-  }
-
-  const start = new Date(startInput);
-  const end = endInput ? new Date(endInput) : null;
-
-  try {
-    await eventsCol.add({ title, start, ...(end ? { end } : {}) });
-
-    // reset form
-    document.getElementById("title").value = "";
-    document.getElementById("start").value = "";
-    document.getElementById("end").value = "";
-  } catch (e) {
-    console.error(e);
-    alert("Không thể lưu sự kiện. Kiểm tra console để biết chi tiết.");
-  }
+  const data = {
+    name: document.getElementById('name').value,
+    color: document.getElementById('color').value,
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+    duration
+  };
+  db.collection("events").add(data).then(() => {
+    document.getElementById('eventForm').reset();
+  });
 };
 
-// ==================== Now Line ====================
-function updateNowLine(scrollIntoView = false) {
-  const now = new Date();
-  const left = (now - startDate) * pxPerMs;
-
-  nowLine.style.left = left + "px";
-  nowLabel.style.left = left + "px";
-  nowLabel.textContent = now
-    .toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-  if (scrollIntoView) {
-    const target = left - wrapper.clientWidth / 2;
-    const maxScroll = timeline.scrollWidth - wrapper.clientWidth;
-    wrapper.scrollLeft = Math.max(0, Math.min(target, maxScroll));
-  }
+// Xóa event
+function deleteEvent(id) {
+  db.collection("events").doc(id).delete();
 }
-
-// realtime cập nhật mỗi giây
-setInterval(updateNowLine, 1000);
-updateNowLine(true);
-
-// nút "Hôm nay" để cuộn tới now-line
-document.getElementById("goto-today").addEventListener("click", () => updateNowLine(true));
-
-// re-render marker nếu resize (đề phòng khi kích thước ảnh hưởng layout)
-window.addEventListener("resize", () => {
-  renderDayMarkers();
-  updateNowLine(false);
-});
