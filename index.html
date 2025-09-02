@@ -1,53 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Timeline Trục Ngang</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <header class="app-header">
-      <h1>Timeline Trục Ngang</h1>
-      <button id="goto-today">Hôm nay</button>
-    </header>
-
-    <!-- Form thêm sự kiện -->
-    <section class="controls">
-      <div class="field">
-        <label for="title">Tiêu đề</label>
-        <input id="title" type="text" placeholder="Nhập tiêu đề sự kiện" />
-      </div>
-      <div class="field">
-        <label for="start">Bắt đầu</label>
-        <input id="start" type="datetime-local" />
-      </div>
-      <div class="field">
-        <label for="end">Kết thúc</label>
-        <input id="end" type="datetime-local" />
-      </div>
-      <button id="save">Lưu</button>
-    </section>
-
-    <!-- Timeline ngang -->
-    <section id="timeline-wrapper">
-      <div id="timeline">
-        <!-- JS sẽ vẽ thêm các .day-marker + .day-label -->
-        <div id="now-line"></div>
-        <div id="now-label"></div>
-      </div>
-    </section>
-
-    <footer class="legend">
-      <div class="pill sample-event">Sự kiện</div>
-      <div class="pill now">Thời điểm hiện tại</div>
-    </footer>
-
-    <!-- Firebase v8 -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <!-- Code timeline -->
-    <script src="./script.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>Dòng thời gian sự kiện</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Dòng thời gian sự kiện</h1>
+  <form id="eventForm">
+    <input type="text" id="name" placeholder="Tên sự kiện" required>
+    <!-- Sử dụng input type="datetime-local" sẽ luôn là 24h, không phải kiểu 12h AM/PM -->
+    <input type="datetime-local" id="startTime" required>
+    <input type="datetime-local" id="endTime" required>
+    <select id="color">
+      <option value="red">Đỏ</option>
+      <option value="yellow">Vàng</option>
+      <option value="gray">Xám</option>
+      <option value="pink">Hồng</option>
+      <option value="blue">Xanh dương</option>
+      <option value="indigo">Xanh tím</option>
+    </select>
+    <button type="submit">Thêm sự kiện</button>
+  </form>
+  <div id="timeline-container">
+    <div id="timeline"></div>
+  </div>
+  <script src="script.js"></script>
+</body>
 </html>
