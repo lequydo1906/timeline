@@ -19,23 +19,28 @@ form { margin: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
 
 .date-col {
   position: absolute;
-  height: 40px;
   font-size: 1.1em;
   color: #FFD600;
   font-weight: bold;
   background: transparent;
-  z-index: 2;
+  z-index: 10;
   text-align: center;
+  width: 30px;
+  height: 40px;
+  line-height: 40px;
+  /* Số nằm trên đầu đường kẻ */
 }
+
 .timeline-day-line {
   background: #444;
   z-index: 1;
   width: 1px;
   position: absolute;
 }
+
 .current-time-row {
   position: absolute;
-  z-index: 10;
+  z-index: 20;
   pointer-events: none;
 }
 .current-time-label {
@@ -50,7 +55,7 @@ form { margin: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
 }
 .current-time-line {
   background: #FFD600 !important;
-  z-index: 10;
+  z-index: 20;
   width: 2px;
   height: 400px;
   position: absolute;
