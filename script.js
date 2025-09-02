@@ -198,3 +198,4 @@ document.getElementById('eventForm').onsubmit = function(e) {
 function deleteEvent(id) {
   db.collection("events").doc(id).delete();
 }
+
