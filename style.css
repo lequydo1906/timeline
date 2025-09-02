@@ -67,6 +67,7 @@ form { margin: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
   padding: 0 12px;
   font-weight: bold; font-size: 1em; cursor: pointer;
   z-index: 3;
+  overflow: hidden;
 }
 .red { background: #d32f2f; }
 .yellow { background: #fbc02d; color: #222; }
@@ -91,3 +92,15 @@ form { margin: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
   opacity: 0.95;
   transition: opacity 0.15s;
 }
+
+/* Thời gian chỉ hiện khi hover */
+.event-bar .time-info { display: none; color: inherit; }
+/* Nút ẩn mặc định */
+.event-bar .delete-btn, .event-bar .edit-btn { display: none; margin-left: 8px; }
+
+/* Khi hover trên thanh hiện thời gian và nút thao tác */
+.event-bar:hover .time-info { display: inline-block; }
+.event-bar:hover .delete-btn, .event-bar:hover .edit-btn { display: inline-block; }
+
+/* Nút sửa */
+.edit-btn { background: #fff; color: #1976d2; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; }

@@ -49,6 +49,13 @@ function calcLeftPx(date, startDate) {
   px += second * pxPerDay / 24 / 3600;
   return px;
 }
+
+// new helpers: lấy ranh giới ngày (bắt đầu của ngày)
+function startOfDay(d) {
+  const dt = (d instanceof Date) ? d : new Date(d);
+  return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0, 0);
+}
+
 function getTimeRemaining(endTime) {
   const now = new Date();
   const end = new Date(endTime);
@@ -68,6 +75,11 @@ function scrollToCurrentTime(startDate) {
   const now = new Date();
   const left = calcLeftPx(now, startDate);
   timelineContainer.scrollLeft = left - timelineContainer.clientWidth / 2 + pxPerDay;
+}
+
+// Thêm helper để format giá trị datetime-local từ ISO
+function toInputDatetimeLocal(iso) {
+	return new Date(iso).toISOString().slice(0,16);
 }
 
 function renderTimeline(events) {
@@ -128,8 +140,17 @@ function renderTimeline(events) {
   events.forEach((ev, idx) => {
     const start = ev.startTime ? new Date(ev.startTime) : new Date(ev.start);
     const end = ev.endTime ? new Date(ev.endTime) : new Date(ev.end || ev.start);
-    const left = calcLeftPx(start, startDate);
-    const right = calcLeftPx(end, startDate);
+
+    // Clamp vào trong phạm vi timeline để không vượt ngoài ngày diễn ra sự kiện
+    // NOTE: tính chiều dài dựa trên "ngày" — bắt đầu từ 00:00 của ngày bắt đầu,
+    // và kết thúc tại 00:00 của ngày kết thúc (không cộng thêm cả ngày).
+    const rawLeft = calcLeftPx(startOfDay(start), startDate);
+    const rawRight = calcLeftPx(startOfDay(end), startDate);
+
+    const minLeft = 0;
+    const maxRight = daysCount * pxPerDay;
+    const left = Math.max(minLeft, Math.min(rawLeft, maxRight));
+    const right = Math.max(minLeft, Math.min(rawRight, maxRight));
     const width = Math.max(right - left, 4);
 
     const bar = document.createElement('div');
@@ -138,13 +159,15 @@ function renderTimeline(events) {
     bar.style.top = (60 + idx * 44) + "px";
     bar.style.width = width + "px";
     bar.style.height = "36px";
-    bar.innerHTML = `${ev.name}
-      <span style="margin-left:8px;">${ev.duration || ""}</span>
-      <span style="margin-left:8px;font-size:0.9em;">
+
+    // Nội dung: tên + thời gian (ẩn mặc định) + nút sửa/xóa (ẩn mặc định, hiện khi hover)
+    bar.innerHTML = `<div class="event-title">${ev.name}</div>
+      <span class="time-info" style="margin-left:8px;font-size:0.9em;">
         ${start.getDate()}/${start.getMonth()+1} ${formatTime24h(start)}
         - ${end.getDate()}/${end.getMonth()+1} ${formatTime24h(end)}
       </span>
-      <button class="delete-btn" onclick="deleteEvent('${ev.id}')">Xóa</button>`;
+      <button class="edit-btn" title="Sửa" onclick="(function(ev){ return function(e){ e.stopPropagation(); startEditEvent(ev); }})(JSON.parse('${JSON.stringify({ id: ev.id, name: ev.name, color: ev.color, startTime: ev.startTime || ev.start, endTime: ev.endTime || ev.end })}'))(event)">Sửa</button>
+      <button class="delete-btn" onclick="(function(id){ return function(e){ e.stopPropagation(); if(confirm('Xóa sự kiện?')) deleteEvent(id); }} )('${ev.id}')(event)">Xóa</button>`;
 
     // Tooltip
     const tooltip = document.createElement('div');
@@ -169,9 +192,59 @@ function renderTimeline(events) {
 // Firestore realtime
 db.collection("events").onSnapshot(snap => {
   const events = [];
-  snap.forEach(doc => events.push({ id: doc.id, ...doc.data() }));
+  const now = new Date();
+  snap.forEach(doc => {
+    const data = { id: doc.id, ...doc.data() };
+    const endTime = data.endTime || data.end || data.start;
+    if (endTime) {
+      const end = new Date(endTime);
+      // Nếu đã kết thúc >24h thì xóa tự động
+      if (now - end > 24 * 60 * 60 * 1000) {
+        doc.ref.delete().catch(()=>{});
+        return; // skip pushing this event
+      }
+    }
+    events.push(data);
+  });
+  // Sắp xếp theo thời gian còn lại (nhỏ -> lớn)
+  events.sort((a,b) => {
+    const na = new Date(a.endTime || a.end || a.start) - new Date();
+    const nb = new Date(b.endTime || b.end || b.start) - new Date();
+    return na - nb;
+  });
   renderTimeline(events);
 });
+
+// Thêm hỗ trợ sửa/cancel cho form
+const editIdInput = document.createElement('input');
+editIdInput.type = 'hidden';
+editIdInput.id = 'editId';
+document.getElementById('eventForm').appendChild(editIdInput);
+
+const cancelBtn = document.createElement('button');
+cancelBtn.type = 'button';
+cancelBtn.id = 'cancelEdit';
+cancelBtn.style.display = 'none';
+cancelBtn.textContent = 'Hủy';
+document.getElementById('eventForm').appendChild(cancelBtn);
+
+cancelBtn.onclick = () => {
+  document.getElementById('eventForm').reset();
+  editIdInput.value = '';
+  cancelBtn.style.display = 'none';
+  document.querySelector('#eventForm button[type="submit"]').textContent = 'Thêm sự kiện';
+};
+
+// Thêm helper để set form từ event khi edit
+function startEditEvent(ev) {
+  document.getElementById('name').value = ev.name || '';
+  document.getElementById('color').value = ev.color || 'red';
+  if (ev.startTime || ev.start) document.getElementById('startTime').value = toInputDatetimeLocal(ev.startTime || ev.start);
+  if (ev.endTime || ev.end) document.getElementById('endTime').value = toInputDatetimeLocal(ev.endTime || ev.end);
+  editIdInput.value = ev.id;
+  document.querySelector('#eventForm button[type="submit"]').textContent = 'Lưu thay đổi';
+  cancelBtn.style.display = 'inline-block';
+}
 
 // Thêm event
 document.getElementById('eventForm').onsubmit = function(e) {
@@ -189,11 +262,26 @@ document.getElementById('eventForm').onsubmit = function(e) {
     endTime: end.toISOString(),
     duration
   };
-  db.collection("events").add(data).then(() => {
-    document.getElementById('eventForm').reset();
-  });
+
+  const editId = document.getElementById('editId').value;
+  if (editId) {
+    db.collection("events").doc(editId).update(data).then(() => {
+      document.getElementById('eventForm').reset();
+      document.getElementById('editId').value = '';
+      document.querySelector('#eventForm button[type="submit"]').textContent = 'Thêm sự kiện';
+      cancelBtn.style.display = 'none';
+    });
+  } else {
+    db.collection("events").add(data).then(() => {
+      document.getElementById('eventForm').reset();
+    });
+  }
 };
 
+// Xóa event
+function deleteEvent(id) {
+  db.collection("events").doc(id).delete();
+}
 // Xóa event
 function deleteEvent(id) {
   db.collection("events").doc(id).delete();
