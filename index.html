@@ -1,33 +1,94 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8">
-  <title>Dòng thời gian sự kiện</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
-</head>
-<body>
-  <h1>Dòng thời gian sự kiện</h1>
-  <form id="eventForm">
-    <input type="text" id="name" placeholder="Tên sự kiện" required>
-    <!-- Luôn là kiểu 24 giờ -->
-    <input type="datetime-local" id="startTime" required>
-    <input type="datetime-local" id="endTime" required>
-    <select id="color">
-      <option value="red">Đỏ</option>
-      <option value="yellow">Vàng</option>
-      <option value="gray">Xám</option>
-      <option value="pink">Hồng</option>
-      <option value="blue">Xanh dương</option>
-      <option value="indigo">Xanh tím</option>
-    </select>
-    <button type="submit">Thêm sự kiện</button>
-  </form>
-  <div id="timeline-container">
-    <div id="timeline"></div>
-  </div>
-  <script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quản Lý Sự Kiện</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="main-container">
+      <div class="event-card">
+        <form id="event-form" class="mobile-grid-form" action="#" method="POST">
+          <div class="form-group name-col">
+            <label>Tên sự kiện</label>
+            <input id="event-name" type="text" placeholder="Tên sự kiện..." />
+          </div>
+
+          <div class="form-group">
+            <label>Bắt đầu</label>
+            <input id="start" type="datetime-local" />
+          </div>
+
+          <div class="form-group">
+            <label>Kết thúc</label>
+            <input id="end" type="datetime-local" />
+          </div>
+
+          <div class="form-group">
+            <label>Màu sắc</label>
+            <div class="color-wrapper">
+              <input id="color" type="color" value="#4a90e2" />
+              <span class="color-label-text">RGB</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Lặp lại</label>
+            <select id="recurrence">
+              <option value="none">Không lặp</option>
+              <option value="daily">Hàng ngày</option>
+              <option value="monthly">Hàng tháng</option>
+              <option value="yearly">Hàng năm</option>
+            </select>
+          </div>
+
+          <div class="form-group checkbox-group">
+            <input type="checkbox" id="game" />
+            <label for="game">Game</label>
+          </div>
+
+          <div class="form-group col-2">
+            <label>Tệp đính kèm</label>
+            <input id="file" type="file" />
+          </div>
+
+          <div class="form-group col-2">
+            <button type="submit" class="btn-submit">Thêm sự kiện</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="timeline-section">
+        <div class="timeline-controls">
+          <div class="date-range">
+            <div class="range-item">
+              <label>Từ:</label>
+              <input id="range-start" type="month" />
+            </div>
+            <div class="range-item">
+              <label>Đến:</label>
+              <input id="range-end" type="month" />
+            </div>
+            <div class="range-item">
+              <label>Game only</label>
+              <input id="filter-game" type="checkbox" />
+            </div>
+            <button id="btn-view" class="btn-filter">Xem</button>
+          </div>
+        </div>
+        <div class="timeline">
+          <div id="timeline-inner" class="timeline-inner">
+            <div id="months-row" class="months-row"></div>
+            <div id="days-row" class="days-row"></div>
+            <div id="events-layer" class="events-layer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="script.js"></script>
+  </body>
 </html>
