@@ -376,9 +376,11 @@ async function renderTimeline() {
       const aStatus = nowMs < aStartMs ? 1 : nowMs < aEndMs ? 0 : -1;
       const bStatus = nowMs < bStartMs ? 1 : nowMs < bEndMs ? 0 : -1;
 
-      // Group by status: ongoing first (0), then upcoming (1), then ended (-1)
+      // Group by status: ongoing first (0), then upcoming (1), then ended (-1) at bottom
       if (aStatus !== bStatus) {
-        return aStatus - bStatus;
+        const aPri = aStatus === 0 ? 0 : aStatus === 1 ? 1 : 2;
+        const bPri = bStatus === 0 ? 0 : bStatus === 1 ? 1 : 2;
+        return aPri - bPri;
       }
 
       // Within same group, sort by:
@@ -711,3 +713,4 @@ function openEventPanel(ev) {
     }
   });
 }
+
