@@ -224,7 +224,7 @@ input[type="color"] {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 0.1px;
+  width: 0.5px;
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -233,7 +233,7 @@ input[type="color"] {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 0.2px;
+  width: 1px;
   background: #ff0000; /* red now-line */
   z-index: 100; /* ensure now-line is above event blocks and guides */
   display: block;
@@ -371,3 +371,4 @@ input[type="color"] {
     grid-column: span 1;
   }
 }
+
