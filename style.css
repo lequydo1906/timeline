@@ -139,7 +139,7 @@ input[type="color"] {
 /* Timeline inner layout: horizontal day columns and absolute event blocks */
 .timeline-inner {
   position: relative;
-  height: 220px;
+  height: 500px;
   overflow-x: auto;
   overflow-y: auto;
   white-space: nowrap;
@@ -149,13 +149,13 @@ input[type="color"] {
   position: absolute;
   top: 30px;
   left: 0;
-  height: 40px;
+  height: 20px;
   white-space: nowrap;
 }
 
 .day-column {
   display: inline-block;
-  width: 30px;
+  width: 40px;
   height: 100%;
   /* remove vertical separators around the day label; guides mark 00:00 */
   border-right: none;
@@ -163,9 +163,9 @@ input[type="color"] {
 }
 
 .day-label {
-  font-size: 10px;
+  font-size: 13px;
   text-align: center;
-  padding: 6px 0;
+  padding: 2px 0;
 }
 
 .months-row {
@@ -371,4 +371,3 @@ input[type="color"] {
     grid-column: span 1;
   }
 }
-
