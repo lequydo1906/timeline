@@ -26,7 +26,6 @@ body {
   background: #fff;
   padding: 12px;
   border-radius: 8px;
-  height: 30vh;
   overflow-y: auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
@@ -178,7 +177,7 @@ input[type="color"] {
 }
 
 .month-block {
-  position: absolute;
+  position: sticky;
   height: 100%;
   padding-top: 6px;
   text-align: center;
@@ -187,6 +186,8 @@ input[type="color"] {
   border-right: 1px solid #eee;
   background: #fafafa;
   box-sizing: border-box;
+  top: 0;
+  z-index: 10;
 }
 
 .events-layer {
@@ -202,12 +203,14 @@ input[type="color"] {
   background: rgba(74, 144, 226, 0.95);
   color: #fff;
   border-radius: 4px;
-  padding: 0;
+  padding: 0 6px;
   font-size: 11px;
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
   z-index: 20;
+  display: flex;
+  align-items: center;
 }
 
 /* vertical guides that run through the events area */
@@ -352,8 +355,8 @@ input[type="color"] {
   }
   .event-card {
     height: auto;
-    max-width: 1000px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
   }
   .mobile-grid-form {
     grid-template-columns: repeat(4, 1fr); /* Trên PC dàn thành 4 cột cho gọn */

@@ -257,6 +257,22 @@ async function renderTimeline() {
     }
   }
   updateNow();
+
+  // Scroll to center now-line on screen
+  if (nowLine.style.display === "block") {
+    setTimeout(() => {
+      const timelineInnerContainer = document.getElementById("timeline-inner");
+      if (timelineInnerContainer) {
+        const nowLineRect = nowLine.getBoundingClientRect();
+        const containerRect = timelineInnerContainer.getBoundingClientRect();
+        const scrollLeft =
+          nowLine.offsetLeft -
+          (timelineInnerContainer.offsetWidth / 2 - nowLine.offsetWidth / 2);
+        timelineInnerContainer.scrollLeft = Math.max(0, scrollLeft);
+      }
+    }, 0);
+  }
+
   window._nowInterval = setInterval(updateNow, 1000);
 
   // Query Firestore for events that intersect the range: start <= rangeEnd AND end >= rangeStart
@@ -420,14 +436,15 @@ async function renderTimeline() {
       evDiv.textContent = ev.name;
       // attach id and click handler (open panel)
       if (ev.id) evDiv.dataset.id = ev.id;
-      evDiv.addEventListener("click", (evClick) => {
-        evClick.stopPropagation();
-        openEventPanel(ev);
-      });
 
-      // hover tooltip showing remaining time and duration
-      evDiv.addEventListener("mouseenter", (e) => {
-        // create tooltip
+      // Helper function to show tooltip
+      function showTooltip(mouseEvent) {
+        // Remove existing tooltip first
+        if (evDiv._tooltip) {
+          evDiv._tooltip.remove();
+          evDiv._tooltip = null;
+        }
+
         const tooltip = document.createElement("div");
         tooltip.className = "event-tooltip";
         const now = new Date();
@@ -460,21 +477,89 @@ async function renderTimeline() {
 
         tooltip.textContent = tooltipText;
         document.body.appendChild(tooltip);
-        // position above the event block centered
-        const rect = evDiv.getBoundingClientRect();
-        const leftPos =
-          rect.left + window.scrollX + rect.width / 2 - tooltip.offsetWidth / 2;
-        const topPos = rect.top + window.scrollY - tooltip.offsetHeight - 6;
-        tooltip.style.left = `${Math.max(4, leftPos)}px`;
-        tooltip.style.top = `${Math.max(4, topPos)}px`;
-        // keep reference for removal
+
+        // Update tooltip position based on mouse event or centered
+        function updateTooltipPosition(e) {
+          if (e) {
+            // Mouse event: follow cursor
+            const leftPos = e.clientX + window.scrollX + 10;
+            const topPos =
+              e.clientY + window.scrollY - tooltip.offsetHeight - 10;
+            tooltip.style.left = `${Math.max(4, leftPos)}px`;
+            tooltip.style.top = `${Math.max(4, topPos)}px`;
+          } else {
+            // No event: center above event block
+            const rect = evDiv.getBoundingClientRect();
+            const leftPos =
+              rect.left +
+              window.scrollX +
+              rect.width / 2 -
+              tooltip.offsetWidth / 2;
+            const topPos = rect.top + window.scrollY - tooltip.offsetHeight - 6;
+            tooltip.style.left = `${Math.max(4, leftPos)}px`;
+            tooltip.style.top = `${Math.max(4, topPos)}px`;
+          }
+        }
+
+        // Position initially
+        updateTooltipPosition(mouseEvent);
+
+        // Keep reference for removal
         evDiv._tooltip = tooltip;
-      });
-      evDiv.addEventListener("mouseleave", () => {
+        evDiv._updateTooltipPos = updateTooltipPosition;
+      }
+
+      function hideTooltip() {
         if (evDiv._tooltip) {
           evDiv._tooltip.remove();
           evDiv._tooltip = null;
         }
+        evDiv._updateTooltipPos = null;
+      }
+
+      // Desktop: hover tooltip - follows mouse
+      evDiv.addEventListener("mouseenter", (e) => showTooltip(e));
+      evDiv.addEventListener("mousemove", (e) => {
+        if (evDiv._updateTooltipPos) {
+          evDiv._updateTooltipPos(e);
+        }
+      });
+      evDiv.addEventListener("mouseleave", hideTooltip);
+
+      // Mobile: tap to show tooltip, double-tap to open panel
+      let tapCount = 0;
+      let tapTimeout;
+      let isFromTouch = false;
+
+      evDiv.addEventListener("touchstart", (e) => {
+        e.stopPropagation();
+        isFromTouch = true;
+        tapCount++;
+
+        if (tapCount === 1) {
+          // Single tap: show tooltip
+          tapTimeout = setTimeout(() => {
+            showTooltip(null); // null = center position, not follow cursor
+            tapCount = 0;
+          }, 200);
+        } else if (tapCount === 2) {
+          // Double tap: open event panel
+          clearTimeout(tapTimeout);
+          hideTooltip();
+          openEventPanel(ev);
+          tapCount = 0;
+        }
+      });
+
+      // Prevent click event on mobile (touchstart already handled)
+      evDiv.addEventListener("click", (evClick) => {
+        if (isFromTouch) {
+          isFromTouch = false;
+          return;
+        }
+        evClick.stopPropagation();
+        // Desktop: click to open panel
+        openEventPanel(ev);
       });
 
       eventsLayer.appendChild(evDiv);
@@ -713,4 +798,3 @@ function openEventPanel(ev) {
     }
   });
 }
-
