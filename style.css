@@ -243,12 +243,13 @@ input[type="color"] {
 .event-text {
   position: sticky;
   left: 0;
-  flex: 1;
+  display: inline-block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 0 4px;
   z-index: 10;
+  max-width: 100%;
 }
 
 .event-image {

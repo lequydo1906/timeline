@@ -15,6 +15,31 @@ const db = firebase.firestore();
 // Helpers
 const msPerDay = 24 * 60 * 60 * 1000;
 
+// Upload image to backend server
+async function uploadImage(file) {
+  if (!file) return null;
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+    
+    const response = await fetch("/upload", {
+      method: "POST",
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      console.error("Upload failed:", response.statusText);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data.url; // Return /img/filename
+  } catch (err) {
+    console.error("Error uploading image:", err);
+    return null;
+  }
+}
+
 function parseMonthInput(value) {
   if (!value) return null;
   const [year, month] = value.split("-").map(Number);
@@ -81,17 +106,11 @@ form.addEventListener("submit", async (e) => {
   const isGame = document.getElementById("game").checked;
   const fileInput = document.getElementById("file");
   
-  // Handle image file
-  let imageData = null;
-  let fileName = null;
+  // Handle image file - upload to Firebase Storage
+  let imageUrl = null;
   if (fileInput.files && fileInput.files[0]) {
     const file = fileInput.files[0];
-    fileName = file.name;
-    imageData = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
+    imageUrl = await uploadImage(file);
   }
 
   if (!name || !startVal || !endVal) {
@@ -124,8 +143,7 @@ form.addEventListener("submit", async (e) => {
       isGame,
       recurrence,
       recurrenceInterval,
-      image: imageData,
-      fileName,
+      image: imageUrl,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -661,7 +679,16 @@ function updateEventTextSticky() {
     const blockWidth = blockRect.width;
     
     // Get event text width
-    const textWidth = eventText.getBoundingClientRect().width;
+    const textRect = eventText.getBoundingClientRect();
+    const textWidth = textRect.width;
+    
+    // Calculate max offset: how much text can shift while staying in block
+    // Account for padding (6px each side) = 12px total
+    const paddingLeft = 6;
+    const maxShiftRange = blockWidth - paddingLeft - 10; // 10px safety margin
+    
+    // Max translateX should not exceed (blockWidth - textWidth) to keep text visible
+    const maxTranslateX = Math.max(0, blockWidth - textWidth);
     
     // Calculate offset based on block position relative to viewport
     let offsetLeft = 0;
@@ -670,16 +697,19 @@ function updateEventTextSticky() {
     if (blockLeft < viewportLeft) {
       // Block is cut off on the left side
       const overshoot = viewportLeft - blockLeft;
-      // Text can shift right, but not beyond block boundaries
-      offsetLeft = Math.min(overshoot, blockWidth - 10); // 10px padding to prevent full shift
+      // Text shifts right, max = maxShiftRange
+      offsetLeft = Math.min(overshoot, maxShiftRange);
     }
     // Check if block extends beyond right edge of viewport
     else if (blockRight > viewportRight) {
       // Block is cut off on the right side
       const overshoot = blockRight - viewportRight;
-      // Text can shift left, but not beyond block boundaries
-      offsetLeft = -Math.min(overshoot, blockWidth - 10); // 10px padding to prevent full shift
+      // Text shifts left, max = -maxShiftRange
+      offsetLeft = -Math.min(overshoot, maxShiftRange);
     }
+    
+    // Ensure offsetLeft is never negative (min = 0) and never exceeds maxTranslateX
+    offsetLeft = Math.max(0, Math.min(offsetLeft, maxTranslateX));
     
     // Apply transform to position text
     eventText.style.transform = `translateX(${offsetLeft}px)`;
@@ -893,14 +923,10 @@ function openEventPanel(ev) {
     }
     
     // Handle new image if selected
-    let newImageData = null;
+    let newImageUrl = null;
     if (imageInput.files && imageInput.files[0]) {
       const file = imageInput.files[0];
-      newImageData = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(file);
-      });
+      newImageUrl = await uploadImage(file);
     }
     
     const updated = {
@@ -913,8 +939,8 @@ function openEventPanel(ev) {
     };
     
     // Add image to update if new image was selected
-    if (newImageData) {
-      updated.image = newImageData;
+    if (newImageUrl) {
+      updated.image = newImageUrl;
     }
     
     try {
