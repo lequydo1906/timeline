@@ -80,8 +80,19 @@ form.addEventListener("submit", async (e) => {
   const color = document.getElementById("color").value;
   const isGame = document.getElementById("game").checked;
   const fileInput = document.getElementById("file");
-  const fileName =
-    fileInput.files && fileInput.files[0] ? fileInput.files[0].name : null;
+  
+  // Handle image file
+  let imageData = null;
+  let fileName = null;
+  if (fileInput.files && fileInput.files[0]) {
+    const file = fileInput.files[0];
+    fileName = file.name;
+    imageData = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
 
   if (!name || !startVal || !endVal) {
     alert("Vui lòng nhập tên, thời gian bắt đầu và kết thúc.");
@@ -97,6 +108,13 @@ form.addEventListener("submit", async (e) => {
 
   try {
     const recurrence = document.getElementById("recurrence").value || "none";
+    
+    // Calculate custom recurrence interval if selected
+    let recurrenceInterval = null;
+    if (recurrence === "custom") {
+      // Recurrence interval = duration of event (end - start)
+      recurrenceInterval = endDate.getTime() - startDate.getTime();
+    }
 
     await db.collection("events").add({
       name,
@@ -105,6 +123,8 @@ form.addEventListener("submit", async (e) => {
       color,
       isGame,
       recurrence,
+      recurrenceInterval,
+      image: imageData,
       fileName,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
@@ -173,7 +193,7 @@ async function renderTimeline() {
     const day = new Date(start.getTime() + i * msPerDay);
     const d = document.createElement("div");
     d.className = "day-column";
-    const label = document.createElement("div");
+    const label = document.createElement("span");
     label.className = "day-label";
     label.textContent = `${day.getDate()}/${String(day.getMonth() + 1).padStart(
       2,
@@ -213,7 +233,13 @@ async function renderTimeline() {
     monthDiv.className = "month-block";
     monthDiv.style.left = `${leftDays * dayWidth}px`;
     monthDiv.style.width = `${daysInMonth * dayWidth}px`;
-    monthDiv.textContent = `${m.getMonth() + 1}/${m.getFullYear()}`;
+    
+    // Wrap text in a span for sticky positioning to work
+    const monthText = document.createElement("span");
+    monthText.className = "month-text";
+    monthText.textContent = `${m.getMonth() + 1}/${m.getFullYear()}`;
+    monthDiv.appendChild(monthText);
+    
     monthsRow.appendChild(monthDiv);
     m = new Date(m.getFullYear(), m.getMonth() + 1, 1);
   }
@@ -433,7 +459,29 @@ async function renderTimeline() {
       evDiv.style.top = `${idx * 36}px`;
       evDiv.style.width = `${width}px`;
       evDiv.style.background = ev.color || "rgba(74,144,226,0.95)";
-      evDiv.textContent = ev.name;
+      
+      // Create wrapper div for content with overflow hidden
+      const wrapper = document.createElement("div");
+      wrapper.className = "event-wrapper";
+      
+      // Wrap text in a span to allow sticky positioning
+      const textSpan = document.createElement("span");
+      textSpan.className = "event-text";
+      textSpan.textContent = ev.name;
+      wrapper.appendChild(textSpan);
+      evDiv.appendChild(wrapper);
+      
+      // Add image if available
+      if (ev.image) {
+        const imgEl = document.createElement("img");
+        imgEl.className = "event-image";
+        imgEl.src = ev.image;
+        imgEl.alt = ev.name;
+        imgEl.setAttribute("width", "168");
+        imgEl.setAttribute("height", "64");
+        evDiv.appendChild(imgEl);
+      }
+      
       // attach id and click handler (open panel)
       if (ev.id) evDiv.dataset.id = ev.id;
 
@@ -537,9 +585,14 @@ async function renderTimeline() {
         tapCount++;
 
         if (tapCount === 1) {
-          // Single tap: show tooltip
+          // Single tap: show tooltip at tap position
+          const touch = e.touches[0];
+          const touchEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+          };
           tapTimeout = setTimeout(() => {
-            showTooltip(null); // null = center position, not follow cursor
+            showTooltip(touchEvent); // Pass touch position, not null
             tapCount = 0;
           }, 200);
         } else if (tapCount === 2) {
@@ -566,10 +619,71 @@ async function renderTimeline() {
     });
 
     // adjust eventsLayer height based on number of rows (single-row-per-event)
-    eventsLayer.style.height = `${Math.max(1, docs.length) * 36}px`;
+    eventsLayer.style.minHeight = `${Math.max(1, docs.length) * 36}px`;
+    
+    // Initial call to update sticky positioning
+    updateEventTextSticky();
+    
+    // Add scroll listener to handle sticky positioning for event text
+    timelineInner.addEventListener("scroll", () => {
+      updateEventTextSticky();
+    });
+    
+    // Add wheel event listener to enable horizontal scroll with mouse wheel
+    timelineInner.addEventListener("wheel", (e) => {
+      // Convert vertical scroll to horizontal scroll
+      e.preventDefault();
+      timelineInner.scrollLeft += e.deltaY;
+    }, { passive: false });
   } catch (err) {
     console.error("Error rendering timeline", err);
   }
+}
+
+// Function to update sticky positioning of event text
+function updateEventTextSticky() {
+  const timelineInner = document.getElementById("timeline-inner");
+  const allEventBlocks = document.querySelectorAll(".event-block");
+  
+  allEventBlocks.forEach((eventBlock) => {
+    const eventText = eventBlock.querySelector(".event-text");
+    if (!eventText) return;
+    
+    // Get viewport (timeline-inner) boundaries
+    const timelineRect = timelineInner.getBoundingClientRect();
+    const viewportLeft = timelineRect.left;
+    const viewportRight = timelineRect.right;
+    
+    // Get event block position and dimensions
+    const blockRect = eventBlock.getBoundingClientRect();
+    const blockLeft = blockRect.left;
+    const blockRight = blockRect.right;
+    const blockWidth = blockRect.width;
+    
+    // Get event text width
+    const textWidth = eventText.getBoundingClientRect().width;
+    
+    // Calculate offset based on block position relative to viewport
+    let offsetLeft = 0;
+    
+    // Check if block extends beyond left edge of viewport
+    if (blockLeft < viewportLeft) {
+      // Block is cut off on the left side
+      const overshoot = viewportLeft - blockLeft;
+      // Text can shift right, but not beyond block boundaries
+      offsetLeft = Math.min(overshoot, blockWidth - 10); // 10px padding to prevent full shift
+    }
+    // Check if block extends beyond right edge of viewport
+    else if (blockRight > viewportRight) {
+      // Block is cut off on the right side
+      const overshoot = blockRight - viewportRight;
+      // Text can shift left, but not beyond block boundaries
+      offsetLeft = -Math.min(overshoot, blockWidth - 10); // 10px padding to prevent full shift
+    }
+    
+    // Apply transform to position text
+    eventText.style.transform = `translateX(${offsetLeft}px)`;
+  });
 }
 
 // load persisted range (if any) then initial render
@@ -697,6 +811,16 @@ function openEventPanel(ev) {
   colorField.appendChild(colorLabel);
   colorField.appendChild(colorInput);
 
+  const imageField = document.createElement("div");
+  imageField.className = "event-field";
+  const imageLabel = document.createElement("label");
+  imageLabel.textContent = "Chọn ảnh";
+  const imageInput = document.createElement("input");
+  imageInput.type = "file";
+  imageInput.accept = "image/*";
+  imageField.appendChild(imageLabel);
+  imageField.appendChild(imageInput);
+
   const gameField = document.createElement("div");
   gameField.className = "event-field";
   const gameLabel = document.createElement("label");
@@ -726,6 +850,7 @@ function openEventPanel(ev) {
   body.appendChild(startField);
   body.appendChild(endField);
   body.appendChild(colorField);
+  body.appendChild(imageField);
   body.appendChild(gameField);
   body.appendChild(recField);
 
@@ -766,6 +891,18 @@ function openEventPanel(ev) {
       alert("Vui lòng kiểm tra tên, thời gian bắt đầu/kết thúc.");
       return;
     }
+    
+    // Handle new image if selected
+    let newImageData = null;
+    if (imageInput.files && imageInput.files[0]) {
+      const file = imageInput.files[0];
+      newImageData = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(file);
+      });
+    }
+    
     const updated = {
       name: newName,
       start: firebase.firestore.Timestamp.fromDate(newStart),
@@ -774,6 +911,12 @@ function openEventPanel(ev) {
       isGame: !!gameInput.checked,
       recurrence: recSelect.value || "none",
     };
+    
+    // Add image to update if new image was selected
+    if (newImageData) {
+      updated.image = newImageData;
+    }
+    
     try {
       if (ev.id) await db.collection("events").doc(ev.id).update(updated);
       closePanel();
