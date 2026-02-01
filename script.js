@@ -688,7 +688,7 @@ function updateEventTextSticky() {
     const maxShiftRange = blockWidth - paddingLeft - 10; // 10px safety margin
     
     // Max translateX should not exceed (blockWidth - textWidth) to keep text visible
-    const maxTranslateX = Math.max(0, blockWidth - textWidth);
+    const maxTranslateX = Math.max(0, blockWidth - textWidth -10);
     
     // Calculate offset based on block position relative to viewport
     let offsetLeft = 0;
