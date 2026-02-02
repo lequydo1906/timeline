@@ -28,6 +28,7 @@ body {
   border-radius: 8px;
   overflow-y: auto;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  min-height: 90px;
 }
 
 .mobile-grid-form {
@@ -209,6 +210,9 @@ input[type="color"] {
   right: 0;
   display: inline-block;
   padding: 0 4px;
+  color: #1a73e8;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .events-layer {

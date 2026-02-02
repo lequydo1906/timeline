@@ -104,14 +104,7 @@ form.addEventListener("submit", async (e) => {
   const endVal = document.getElementById("end").value;
   const color = document.getElementById("color").value;
   const isGame = document.getElementById("game").checked;
-  const fileInput = document.getElementById("file");
-  
-  // Handle image file - upload to Firebase Storage
-  let imageUrl = null;
-  if (fileInput.files && fileInput.files[0]) {
-    const file = fileInput.files[0];
-    imageUrl = await uploadImage(file);
-  }
+  const imageUrl = document.getElementById("file").value.trim();
 
   if (!name || !startVal || !endVal) {
     alert("Vui lòng nhập tên, thời gian bắt đầu và kết thúc.");
@@ -143,7 +136,7 @@ form.addEventListener("submit", async (e) => {
       isGame,
       recurrence,
       recurrenceInterval,
-      image: imageUrl,
+      image: imageUrl || null,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -213,10 +206,7 @@ async function renderTimeline() {
     d.className = "day-column";
     const label = document.createElement("span");
     label.className = "day-label";
-    label.textContent = `${day.getDate()}/${String(day.getMonth() + 1).padStart(
-      2,
-      "0"
-    )}`;
+    label.textContent = `${day.getDate()}`;
     d.appendChild(label);
     daysRow.appendChild(d);
   }
@@ -477,6 +467,7 @@ async function renderTimeline() {
       evDiv.style.top = `${idx * 36}px`;
       evDiv.style.width = `${width}px`;
       evDiv.style.background = ev.color || "rgba(74,144,226,0.95)";
+      evDiv.style.color = ev.textColor || "#ffffff";
       
       // Create wrapper div for content with overflow hidden
       const wrapper = document.createElement("div");
@@ -684,7 +675,7 @@ function updateEventTextSticky() {
     
     // Calculate max offset: how much text can shift while staying in block
     // Account for padding (6px each side) = 12px total
-    const paddingLeft = 6;
+    const paddingLeft = 3;
     const maxShiftRange = blockWidth - paddingLeft - 10; // 10px safety margin
     
     // Max translateX should not exceed (blockWidth - textWidth) to keep text visible
@@ -782,12 +773,36 @@ function openEventPanel(ev) {
   const panel = document.createElement("div");
   panel.className = "event-panel";
 
-  // header
+  // header - show time remaining like tooltip
   const hdr = document.createElement("div");
   hdr.className = "event-panel-header";
   const title = document.createElement("div");
   title.className = "event-panel-title";
-  title.textContent = ev.name || "Sự kiện";
+  const startDate = ev.start && ev.start.toDate ? ev.start.toDate() : new Date(ev.start);
+  const endDate = ev.end && ev.end.toDate ? ev.end.toDate() : new Date(ev.end);
+  const now = new Date();
+  const startMs = startDate.getTime();
+  const endMs = endDate.getTime();
+  const nowMs = now.getTime();
+  const durationMs = endMs - startMs;
+  const durationFormatted = formatDetailedDuration(durationMs);
+  
+  let tooltipText = "";
+  if (nowMs < startMs) {
+    const timeUntilStart = startMs - nowMs;
+    const formatted = formatDetailedDuration(timeUntilStart);
+    tooltipText = `Còn ${formatted} sẽ diễn ra • Thời lượng: ${durationFormatted}`;
+  } else if (nowMs < endMs) {
+    const timeRemaining = endMs - nowMs;
+    const formatted = formatDetailedDuration(timeRemaining);
+    tooltipText = `Còn ${formatted}`;
+  } else {
+    const timeSinceEnd = nowMs - endMs;
+    const formatted = formatDetailedDuration(timeSinceEnd);
+    tooltipText = `Kết thúc ${formatted}`;
+  }
+  
+  title.textContent = tooltipText;
   const closeBtn = document.createElement("button");
   closeBtn.className = "event-panel-edit";
   closeBtn.textContent = "Đóng";
@@ -834,22 +849,58 @@ function openEventPanel(ev) {
   const colorField = document.createElement("div");
   colorField.className = "event-field";
   const colorLabel = document.createElement("label");
-  colorLabel.textContent = "Màu";
+  colorLabel.textContent = "Màu nền";
+  const colorWrapper = document.createElement("div");
+  colorWrapper.style.display = "flex";
+  colorWrapper.style.gap = "8px";
+  colorWrapper.style.alignItems = "center";
   const colorInput = document.createElement("input");
   colorInput.type = "color";
   colorInput.value = ev.color || "#4a90e2";
+  colorInput.style.width = "40px";
+  colorInput.style.height = "40px";
+  colorInput.style.cursor = "pointer";
+  const colorPreview = document.createElement("div");
+  colorPreview.style.width = "40px";
+  colorPreview.style.height = "40px";
+  colorPreview.style.backgroundColor = ev.color || "#4a90e2";
+  colorPreview.style.borderRadius = "4px";
+  colorPreview.style.border = "1px solid #ccc";
+  colorInput.addEventListener("input", (e) => {
+    colorPreview.style.backgroundColor = e.target.value;
+  });
+  colorWrapper.appendChild(colorInput);
+  colorWrapper.appendChild(colorPreview);
   colorField.appendChild(colorLabel);
-  colorField.appendChild(colorInput);
+  colorField.appendChild(colorWrapper);
 
-  const imageField = document.createElement("div");
-  imageField.className = "event-field";
-  const imageLabel = document.createElement("label");
-  imageLabel.textContent = "Chọn ảnh";
-  const imageInput = document.createElement("input");
-  imageInput.type = "file";
-  imageInput.accept = "image/*";
-  imageField.appendChild(imageLabel);
-  imageField.appendChild(imageInput);
+  const textColorField = document.createElement("div");
+  textColorField.className = "event-field";
+  const textColorLabel = document.createElement("label");
+  textColorLabel.textContent = "Màu chữ";
+  const textColorWrapper = document.createElement("div");
+  textColorWrapper.style.display = "flex";
+  textColorWrapper.style.gap = "8px";
+  textColorWrapper.style.alignItems = "center";
+  const textColorInput = document.createElement("input");
+  textColorInput.type = "color";
+  textColorInput.value = ev.textColor || "#ffffff";
+  textColorInput.style.width = "40px";
+  textColorInput.style.height = "40px";
+  textColorInput.style.cursor = "pointer";
+  const textColorPreview = document.createElement("div");
+  textColorPreview.style.width = "40px";
+  textColorPreview.style.height = "40px";
+  textColorPreview.style.backgroundColor = ev.textColor || "#ffffff";
+  textColorPreview.style.borderRadius = "4px";
+  textColorPreview.style.border = "1px solid #ccc";
+  textColorInput.addEventListener("input", (e) => {
+    textColorPreview.style.backgroundColor = e.target.value;
+  });
+  textColorWrapper.appendChild(textColorInput);
+  textColorWrapper.appendChild(textColorPreview);
+  textColorField.appendChild(textColorLabel);
+  textColorField.appendChild(textColorWrapper);
 
   const gameField = document.createElement("div");
   gameField.className = "event-field";
@@ -861,15 +912,40 @@ function openEventPanel(ev) {
   gameField.appendChild(gameLabel);
   gameField.appendChild(gameInput);
 
+  // Container for color + game fields in one row
+  const colorGameContainer = document.createElement("div");
+  colorGameContainer.style.display = "flex";
+  colorGameContainer.style.justifyContent = "space-around";
+  colorGameContainer.style.gap = "10px";
+  colorGameContainer.appendChild(colorField);
+  colorGameContainer.appendChild(textColorField);
+  colorGameContainer.appendChild(gameField);
+
+  const imageField = document.createElement("div");
+  imageField.className = "event-field";
+  const imageLabel = document.createElement("label");
+  imageLabel.textContent = "URL ảnh";
+  const imageInput = document.createElement("input");
+  imageInput.type = "text";
+  imageInput.value = ev.image || "";
+  imageInput.placeholder = "https://example.com/image.jpg";
+  imageField.appendChild(imageLabel);
+  imageField.appendChild(imageInput);
+
   const recField = document.createElement("div");
   recField.className = "event-field";
   const recLabel = document.createElement("label");
   recLabel.textContent = "Lặp lại";
   const recSelect = document.createElement("select");
-  ["none", "daily", "monthly", "yearly"].forEach((r) => {
+  ["none", "daily", "weekly", "monthly", "yearly", "custom"].forEach((r) => {
     const opt = document.createElement("option");
     opt.value = r;
-    opt.textContent = r;
+    opt.textContent = r === "none" ? "Không lặp" : 
+                      r === "daily" ? "Hàng ngày" :
+                      r === "weekly" ? "Hàng tuần" :
+                      r === "monthly" ? "Hàng tháng" :
+                      r === "yearly" ? "Hàng năm" :
+                      "Theo khoảng thời gian";
     if ((ev.recurrence || "none") === r) opt.selected = true;
     recSelect.appendChild(opt);
   });
@@ -879,9 +955,8 @@ function openEventPanel(ev) {
   body.appendChild(nameField);
   body.appendChild(startField);
   body.appendChild(endField);
-  body.appendChild(colorField);
+  body.appendChild(colorGameContainer);
   body.appendChild(imageField);
-  body.appendChild(gameField);
   body.appendChild(recField);
 
   // actions
@@ -891,9 +966,6 @@ function openEventPanel(ev) {
   saveBtn.textContent = "Lưu";
   const delBtn = document.createElement("button");
   delBtn.textContent = "Xóa";
-  const cancelBtn = document.createElement("button");
-  cancelBtn.textContent = "Hủy";
-  actions.appendChild(cancelBtn);
   actions.appendChild(delBtn);
   actions.appendChild(saveBtn);
 
@@ -910,7 +982,6 @@ function openEventPanel(ev) {
 
   backdrop.addEventListener("click", closePanel);
   closeBtn.addEventListener("click", closePanel);
-  cancelBtn.addEventListener("click", closePanel);
 
   // Save updates to Firestore
   saveBtn.addEventListener("click", async () => {
@@ -922,23 +993,18 @@ function openEventPanel(ev) {
       return;
     }
     
-    // Handle new image if selected
-    let newImageUrl = null;
-    if (imageInput.files && imageInput.files[0]) {
-      const file = imageInput.files[0];
-      newImageUrl = await uploadImage(file);
-    }
-    
     const updated = {
       name: newName,
       start: firebase.firestore.Timestamp.fromDate(newStart),
       end: firebase.firestore.Timestamp.fromDate(newEnd),
       color: colorInput.value,
+      textColor: textColorInput.value,
       isGame: !!gameInput.checked,
       recurrence: recSelect.value || "none",
     };
     
-    // Add image to update if new image was selected
+    // Add image URL if provided
+    const newImageUrl = imageInput.value.trim();
     if (newImageUrl) {
       updated.image = newImageUrl;
     }
