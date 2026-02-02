@@ -166,6 +166,7 @@ input[type="color"] {
   border-right: none;
   vertical-align: top;
   overflow: hidden;
+  text-align: center;
 }
 
 .day-label {
@@ -430,3 +431,4 @@ input[type="color"] {
     grid-column: span 1;
   }
 }
+
