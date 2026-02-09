@@ -12,6 +12,218 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Detect iOS Safari
+const isIOSSafari = () => {
+  const ua = navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod/.test(ua) && /safari|version/.test(ua) && !/chrome|crios|firefox|fxios/.test(ua);
+};
+
+// Zoom and Fullscreen functionality
+let currentZoomLevel = 100;
+let isFullscreenMode = false;
+const mainContainer = document.getElementById("main-container");
+const eventCard = document.querySelector(".event-card");
+const timelineSection = document.querySelector(".timeline-section");
+const timelineControls = document.querySelector(".timeline-controls");
+const timeline = document.querySelector(".timeline");
+const zoomOutBtn = document.getElementById("zoom-out");
+const zoomInBtn = document.getElementById("zoom-in");
+const zoomLevelText = document.getElementById("zoom-level");
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+const resetViewBtn = document.getElementById("reset-view-btn");
+const isIOS = isIOSSafari();
+
+function updateZoom() {
+  const zoomPercent = currentZoomLevel / 100;
+  const timelineInnerEl = document.querySelector(".timeline-inner");
+  if (timelineInnerEl) {
+    timelineInnerEl.style.transform = `scale(${zoomPercent})`;
+    timelineInnerEl.style.transformOrigin = "top center";
+  }
+  zoomLevelText.textContent = `${currentZoomLevel}%`;
+}
+
+zoomOutBtn.addEventListener("click", () => {
+  currentZoomLevel = Math.max(50, currentZoomLevel - 10);
+  updateZoom();
+});
+
+zoomInBtn.addEventListener("click", () => {
+  currentZoomLevel = Math.min(200, currentZoomLevel + 10);
+  updateZoom();
+});
+
+// Fullscreen functionality - show only the timeline
+fullscreenBtn.addEventListener("click", () => {
+  if (!isFullscreenMode) {
+    enterFullscreen();
+  } else {
+    exitFullscreen();
+  }
+});
+
+function enterFullscreen() {
+  isFullscreenMode = true;
+  
+  // Hide form
+  eventCard.style.display = "none";
+  
+  // Try to request native fullscreen (will hide browser UI including address bar on iOS)
+  if (mainContainer.requestFullscreen) {
+    mainContainer.requestFullscreen().catch((err) => {
+      console.log("Fullscreen request denied:", err);
+      enterPseudoFullscreen();
+    });
+  } else if (mainContainer.webkitRequestFullscreen) {
+    mainContainer.webkitRequestFullscreen();
+  } else if (mainContainer.mozRequestFullScreen) {
+    mainContainer.mozRequestFullScreen();
+  } else {
+    // Fallback to pseudo-fullscreen
+    enterPseudoFullscreen();
+  }
+}
+
+function enterPseudoFullscreen() {
+  // Add fullscreen class
+  mainContainer.classList.add("fullscreen");
+  document.body.classList.add("fullscreen-mode");
+  document.documentElement.classList.add("fullscreen-mode");
+  
+  // Scroll to top and hide address bar on iOS
+  window.scrollTo(0, 0);
+  setTimeout(() => {
+    window.scrollTo(0, 0);
+  }, 100);
+  
+  // Lock body and html
+  document.body.style.overflow = "hidden";
+  document.body.style.position = "fixed";
+  document.body.style.width = "100%";
+  document.body.style.height = "100%";
+  document.documentElement.style.overflow = "hidden";
+  
+  // Hide all siblings of main-container
+  Array.from(document.body.children).forEach(child => {
+    if (child !== mainContainer) {
+      child.style.display = "none";
+    }
+  });
+  
+  // Make main container fullscreen with no gaps
+  mainContainer.style.position = "fixed";
+  mainContainer.style.top = "0";
+  mainContainer.style.left = "0";
+  mainContainer.style.width = "100vw";
+  mainContainer.style.height = "100dvh";
+  mainContainer.style.zIndex = "2000";
+  mainContainer.style.padding = "0";
+  mainContainer.style.margin = "0";
+  mainContainer.style.flexDirection = "column";
+  mainContainer.style.gap = "0";
+  mainContainer.style.border = "none";
+  mainContainer.style.borderRadius = "0";
+  
+  // Make timeline section fill the remaining space
+  timelineSection.style.flex = "1";
+  timelineSection.style.display = "flex";
+  timelineSection.style.flexDirection = "column";
+  timelineSection.style.borderRadius = "0";
+  timelineSection.style.border = "none";
+  
+  fullscreenBtn.textContent = "⊡";
+  fullscreenBtn.title = "Exit fullscreen";
+  resetViewBtn.style.display = "inline-block";
+}
+
+function exitFullscreen() {
+  isFullscreenMode = false;
+  
+  // Show form again
+  eventCard.style.display = "";
+  
+  // Exit native fullscreen if active
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else if (document.webkitFullscreenElement) {
+    document.webkitExitFullscreen();
+  } else if (document.mozFullScreenElement) {
+    document.mozCancelFullScreen();
+  }
+  
+  // Always clean up pseudo-fullscreen styling
+  exitPseudoFullscreen();
+}
+
+function exitPseudoFullscreen() {
+  // Remove fullscreen class
+  mainContainer.classList.remove("fullscreen");
+  document.body.classList.remove("fullscreen-mode");
+  document.documentElement.classList.remove("fullscreen-mode");
+  
+  // Restore body and html
+  document.body.style.overflow = "";
+  document.body.style.position = "";
+  document.body.style.width = "";
+  document.body.style.height = "";
+  document.documentElement.style.overflow = "";
+  
+  // Show all siblings of main-container
+  Array.from(document.body.children).forEach(child => {
+    if (child !== mainContainer) {
+      child.style.display = "";
+    }
+  });
+  
+  // Reset main container
+  mainContainer.style.position = "";
+  mainContainer.style.top = "";
+  mainContainer.style.left = "";
+  mainContainer.style.width = "";
+  mainContainer.style.height = "";
+  mainContainer.style.zIndex = "";
+  mainContainer.style.padding = "8px";
+  mainContainer.style.margin = "";
+  mainContainer.style.gap = "8px";
+  mainContainer.style.border = "";
+  mainContainer.style.borderRadius = "";
+  
+  // Reset timeline section
+  timelineSection.style.flex = "";
+  timelineSection.style.display = "";
+  timelineSection.style.flexDirection = "";
+  timelineSection.style.borderRadius = "";
+  timelineSection.style.border = "";
+  
+  fullscreenBtn.textContent = "⛶";
+  fullscreenBtn.title = "Fullscreen";
+  resetViewBtn.style.display = "none";
+}
+
+// Reset view button
+resetViewBtn.addEventListener("click", () => {
+  exitFullscreen();
+});
+
+// Handle fullscreen exit (e.g., ESC key press)
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) {
+    exitFullscreen();
+  }
+});
+
+document.addEventListener("webkitfullscreenchange", () => {
+  if (!document.webkitFullscreenElement) {
+    exitFullscreen();
+  }
+});
+
+document.addEventListener("mozfullscreenchange", () => {
+  if (!document.mozFullScreenElement) {
+    exitFullscreen();
+  }
+});
+
 // Helpers
 const msPerDay = 24 * 60 * 60 * 1000;
 
@@ -337,11 +549,16 @@ async function renderTimeline() {
     // process recurrence: when an event has ended and has a recurrence rule,
     // create exactly one next occurrence and remove the expired event so each
     // event appears only once in the timeline. This avoids bulk backfilling.
-    function addIntervalToDate(d, recurrence) {
+    function addIntervalToDate(d, recurrence, recurrenceInterval) {
       const nd = new Date(d.getTime());
       if (recurrence === "daily") nd.setDate(nd.getDate() + 1);
+      else if (recurrence === "weekly") nd.setDate(nd.getDate() + 7);
       else if (recurrence === "monthly") nd.setMonth(nd.getMonth() + 1);
       else if (recurrence === "yearly") nd.setFullYear(nd.getFullYear() + 1);
+      else if (recurrence === "custom" && recurrenceInterval) {
+        // Add the custom interval in milliseconds
+        nd.setTime(nd.getTime() + recurrenceInterval);
+      }
       return nd;
     }
 
@@ -366,8 +583,8 @@ async function renderTimeline() {
       const evEnd =
         ev.end && ev.end.toDate ? ev.end.toDate() : new Date(ev.end);
       if (evEnd < now) {
-        const nextStart = addIntervalToDate(evStart, recurrence);
-        const nextEnd = addIntervalToDate(evEnd, recurrence);
+        const nextStart = addIntervalToDate(evStart, recurrence, ev.recurrenceInterval);
+        const nextEnd = addIntervalToDate(evEnd, recurrence, ev.recurrenceInterval);
         const key = ev.name + ":" + nextStart.getTime();
         if (!existingMap.has(key)) {
           try {
@@ -376,9 +593,11 @@ async function renderTimeline() {
               start: firebase.firestore.Timestamp.fromDate(nextStart),
               end: firebase.firestore.Timestamp.fromDate(nextEnd),
               color: ev.color || "#4a90e2",
+              textColor: ev.textColor || "#ffffff",
               isGame: !!ev.isGame,
-              fileName: ev.fileName || null,
+              image: ev.image || null,
               recurrence: recurrence,
+              recurrenceInterval: ev.recurrenceInterval || null,
               recurrenceSourceId: ev.id || null,
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             });
@@ -639,10 +858,19 @@ async function renderTimeline() {
     });
     
     // Add wheel event listener to enable horizontal scroll with mouse wheel
+    // Also support Ctrl+wheel for zoom the event layer
     timelineInner.addEventListener("wheel", (e) => {
-      // Convert vertical scroll to horizontal scroll
-      e.preventDefault();
-      timelineInner.scrollLeft += e.deltaY;
+      if (e.ctrlKey) {
+        // Ctrl + wheel = zoom event layer
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -10 : 10;
+        currentZoomLevel = Math.max(50, Math.min(200, currentZoomLevel + delta));
+        updateZoom();
+      } else {
+        // Regular wheel = horizontal scroll
+        e.preventDefault();
+        timelineInner.scrollLeft += e.deltaY;
+      }
     }, { passive: false });
   } catch (err) {
     console.error("Error rendering timeline", err);
@@ -1002,6 +1230,11 @@ function openEventPanel(ev) {
       isGame: !!gameInput.checked,
       recurrence: recSelect.value || "none",
     };
+    
+    // Calculate custom recurrence interval if selected
+    if (recSelect.value === "custom") {
+      updated.recurrenceInterval = newEnd.getTime() - newStart.getTime();
+    }
     
     // Add image URL if provided
     const newImageUrl = imageInput.value.trim();
