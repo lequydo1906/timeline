@@ -2,12 +2,14 @@
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Quản Lý Sự Kiện</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="main-container">
+    <div class="main-container" id="main-container">
       <div class="event-card">
         <form id="event-form" class="mobile-grid-form" action="#" method="POST">
           <div class="form-group name-col">
@@ -77,6 +79,13 @@
               <input id="filter-game" type="checkbox" />
             </div>
             <button id="btn-view" class="btn-filter">Xem</button>
+            <div class="zoom-section">
+              <button id="zoom-out" class="zoom-btn" title="Thu nhỏ">Zoom−</button>
+              <span id="zoom-level">100%</span>
+              <button id="zoom-in" class="zoom-btn" title="Phóng to">Zoom+</button>
+              <button id="fullscreen-btn" class="zoom-btn" title="Toàn màn hình">⛶</button>
+              <button id="reset-view-btn" class="zoom-btn" title="Quay lại bình thường" style="display: none;">✕</button>
+            </div>
           </div>
         </div>
         <div class="timeline">
