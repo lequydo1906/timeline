@@ -937,6 +937,13 @@ function updateEventTextSticky() {
 
 // load persisted range (if any) then initial render
 loadRangeFromStorage();
+
+// Apply year input limit to main form datetime inputs
+const startInput = document.getElementById("start");
+const endInput = document.getElementById("end");
+if (startInput) limitYearInput(startInput);
+if (endInput) limitYearInput(endInput);
+
 renderTimeline();
 
 // helper to format a Date to `YYYY-MM-DDTHH:MM` for datetime-local inputs
@@ -954,6 +961,38 @@ function formatForInput(d) {
     ":" +
     pad(d.getMinutes())
   );
+}
+
+// helper to limit year input to 4 digits for datetime-local inputs
+function limitYearInput(input) {
+  input.addEventListener("input", (e) => {
+    const value = e.target.value;
+    // Check if year part (before first hyphen) has more than 4 digits
+    const hyphenIndex = value.indexOf("-");
+    if (hyphenIndex > 4) {
+      // Year has more than 4 digits, keep only first 4 digits
+      const year = value.substring(0, 4);
+      const rest = value.substring(hyphenIndex);
+      e.target.value = year + rest;
+    }
+  });
+  
+  // Allow space key to jump to time input (HH:MM part)
+  input.addEventListener("keydown", (e) => {
+    if (e.code === "Space" || e.key === " ") {
+      const tIndex = input.value.indexOf("T");
+      // Only intercept space if cursor is before time part
+      if (tIndex > 0 && input.selectionStart < tIndex) {
+        e.preventDefault();
+        // Focus input first to ensure proper state
+        input.focus();
+        // Move cursor to start of time part (HH position) instead of selecting
+        setTimeout(() => {
+          input.setSelectionRange(tIndex + 1, tIndex + 1);
+        }, 0);
+      }
+    }
+  });
 }
 
 // format duration in ms to human-readable like "1h 23m 5s"
@@ -1057,11 +1096,27 @@ function openEventPanel(ev) {
   startLabel.textContent = "Bắt đầu";
   const startInput = document.createElement("input");
   startInput.type = "datetime-local";
+  startInput.maxLength = "16"; // Limit to standard format: YYYY-MM-DDTHH:MM
   const sDate =
     ev.start && ev.start.toDate ? ev.start.toDate() : new Date(ev.start);
   startInput.value = formatForInput(sDate);
   startField.appendChild(startLabel);
   startField.appendChild(startInput);
+
+  // Limit year input to 4 digits while typing
+  limitYearInput(startInput);
+  
+  // Validate year is exactly 4 digits for start datetime
+  startInput.addEventListener("blur", (e) => {
+    const value = e.target.value;
+    if (value) {
+      const year = parseInt(value.substring(0, 4));
+      if (isNaN(year) || year < 1000 || year > 9999) {
+        alert("Năm phải là 4 chữ số (1000-9999)");
+        e.target.value = formatForInput(sDate);
+      }
+    }
+  });
 
   const endField = document.createElement("div");
   endField.className = "event-field";
@@ -1069,10 +1124,26 @@ function openEventPanel(ev) {
   endLabel.textContent = "Kết thúc";
   const endInput = document.createElement("input");
   endInput.type = "datetime-local";
+  endInput.maxLength = "16"; // Limit to standard format: YYYY-MM-DDTHH:MM
   const eDate = ev.end && ev.end.toDate ? ev.end.toDate() : new Date(ev.end);
   endInput.value = formatForInput(eDate);
   endField.appendChild(endLabel);
   endField.appendChild(endInput);
+
+  // Limit year input to 4 digits while typing
+  limitYearInput(endInput);
+  
+  // Validate year is exactly 4 digits for end datetime
+  endInput.addEventListener("blur", (e) => {
+    const value = e.target.value;
+    if (value) {
+      const year = parseInt(value.substring(0, 4));
+      if (isNaN(year) || year < 1000 || year > 9999) {
+        alert("Năm phải là 4 chữ số (1000-9999)");
+        e.target.value = formatForInput(eDate);
+      }
+    }
+  });
 
   const colorField = document.createElement("div");
   colorField.className = "event-field";

@@ -211,6 +211,7 @@ input[type="color"] {
   border: none;
   border-radius: 4px;
   font-weight: bold;
+  margin-top: 10px;
 }
 
 /* --- TIMELINE: 70% CHIỀU CAO --- */
